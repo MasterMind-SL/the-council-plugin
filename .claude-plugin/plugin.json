@@ -1,0 +1,11 @@
+{
+  "name": "the-council",
+  "version": "1.0.0",
+  "description": "Adversarial consultation: spawn strategist + critic satellites, synthesize as hub",
+  "author": {
+    "name": "MasterMind-SL"
+  },
+  "repository": "https://github.com/MasterMind-SL/the-council-plugin",
+  "license": "MIT",
+  "keywords": ["council", "consultation", "adversarial", "strategist", "critic", "multi-agent"]
+}

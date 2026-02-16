@@ -1,0 +1,16 @@
+[project]
+name = "the-council"
+version = "1.0.0"
+description = "Adversarial consultation with strategist + critic satellites for Claude Code"
+requires-python = ">=3.11"
+dependencies = [
+    "mcp>=1.26.0",
+    "pyyaml>=6.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

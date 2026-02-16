@@ -1,0 +1,25 @@
+{
+  "name": "the-council-plugin",
+  "owner": {
+    "name": "MasterMind-SL"
+  },
+  "metadata": {
+    "description": "Adversarial consultation with strategist + critic satellites for architecture decisions, risk analysis, and complex implementations",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "the-council",
+      "source": "./",
+      "description": "Spawn adversarial strategist + critic satellites, synthesize as hub",
+      "version": "1.0.0",
+      "author": {
+        "name": "MasterMind-SL"
+      },
+      "repository": "https://github.com/MasterMind-SL/the-council-plugin",
+      "license": "MIT",
+      "keywords": ["council", "consultation", "adversarial", "multi-agent"],
+      "category": "productivity"
+    }
+  ]
+}
