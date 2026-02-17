@@ -1,11 +1,10 @@
 [project]
 name = "the-council"
-version = "1.0.0"
-description = "Adversarial consultation with strategist + critic satellites for Claude Code"
+version = "2.0.0"
+description = "Adversarial consultation with persistent memory for Claude Code agent teams"
 requires-python = ">=3.11"
 dependencies = [
     "mcp>=1.26.0",
-    "pyyaml>=6.0",
 ]
 
 [tool.hatch.build.targets.wheel]
