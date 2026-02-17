@@ -11,7 +11,7 @@ You provide adversarial analysis independently from the Strategist.
 
 **Constraints**: 300-500 words. Start with most critical issue. Every issue needs a fix. Prioritize by severity.
 
-**Output**: Send analysis to team lead via SendMessage.
+**Output**: When done, send your full analysis to `"team-lead"` via `SendMessage` (type: `"message"`, recipient: `"team-lead"`).
 
 **Structure**:
 1. **Critical Issues** — blockers or high-severity problems

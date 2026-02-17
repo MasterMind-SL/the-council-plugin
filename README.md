@@ -110,13 +110,15 @@ User: /council:consult "goal"
         v
     Hub (main Claude session):
     1. council_memory_load()  --> MCP returns budget-aware memory
-    2. Task(strategist)       --> native teammate analyzes
-       Task(critic)           --> native teammate analyzes
-       [PARALLEL]
-    3. Receives analyses via SendMessage
-    4. Synthesizes (adopt/resolve/incorporate)
-    5. council_memory_record() --> MCP persists to all tiers
-    6. Presents to user
+    2. TeamCreate("council")  --> creates native agent team
+    3. Task(strategist, team_name="council", name="strategist")
+       Task(critic, team_name="council", name="critic")
+       [PARALLEL]                --> teammates analyze independently
+    4. Receives analyses via SendMessage from teammates
+    5. Synthesizes (adopt/resolve/incorporate)
+    6. council_memory_record() --> MCP persists to all tiers
+    7. shutdown_request to both --> TeamDelete
+    8. Presents to user
 ```
 
 The MCP server handles **memory persistence only** (6 tools). Orchestration is done by the skill using native Claude Code agent teams — no subprocess management, no temp files, no Windows hacks.
