@@ -22,13 +22,33 @@ TOPIC_KEYWORDS: dict[str, list[str]] = {
     "data": ["data", "etl", "pipeline", "stream", "kafka", "queue", "event", "message", "pubsub", "webhook"],
 }
 
+_STOPWORDS = frozenset({
+    "the", "and", "for", "that", "this", "with", "from", "are", "was", "were",
+    "been", "have", "has", "had", "not", "but", "what", "all", "can", "will",
+    "one", "its", "also", "into", "than", "each", "use", "should", "would",
+    "could", "may", "need", "how", "when", "where", "which", "just", "more",
+    "about", "they", "them", "then", "there", "here", "only", "some", "very",
+})
+
 
 def extract_topics(text: str, topic_index: dict | None = None) -> set[str]:
-    """Extract topic tags from text using keyword matching."""
+    """Extract topic tags from text. Checks dynamic keywords from topic_index first,
+    falls back to TOPIC_KEYWORDS seed."""
     words = set(re.findall(r"[a-z0-9-]+", text.lower()))
     topics = set()
-    for topic, keywords in TOPIC_KEYWORDS.items():
-        if any(kw in words or any(kw in w for w in words) for kw in keywords):
+
+    # Merge dynamic keywords from topic_index with seed keywords
+    keyword_map: dict[str, list[str]] = {t: list(kws) for t, kws in TOPIC_KEYWORDS.items()}
+    if topic_index:
+        for topic, info in topic_index.items():
+            dynamic_kws = info.get("keywords", [])
+            if topic in keyword_map:
+                keyword_map[topic] = list(set(keyword_map[topic] + dynamic_kws))
+            else:
+                keyword_map[topic] = dynamic_kws
+
+    for topic, keywords in keyword_map.items():
+        if keywords and any(kw in words or any(kw in w for w in words) for kw in keywords):
             topics.add(topic)
     return topics
 
@@ -202,6 +222,39 @@ def build_memory_response(
             tier0_parts.append(f"- {d.get('session_id', '?')}: {d.get('goal_oneliner', '')} -> {d.get('decision_oneliner', '')}")
         tier0_parts.append("")
 
+    # Archive signpost (~150-200 tokens, always included)
+    memory_path = _memory_dir(project_dir)
+    decisions_path = memory_path / "decisions.md"
+    lessons_path = memory_path / "lessons.jsonl"
+    decision_count = 0
+    lesson_count = 0
+    if decisions_path.exists():
+        decision_count = decisions_path.read_text(encoding="utf-8").count("\n## ")
+    if lessons_path.exists():
+        content = lessons_path.read_text(encoding="utf-8").strip()
+        lesson_count = sum(1 for line in content.split("\n") if line.strip()) if content else 0
+    if decision_count or lesson_count:
+        tier0_parts.append("### Archive")
+        tier0_parts.append(f"- {decision_count} decisions, {lesson_count} lessons archived")
+        if topic_idx:
+            densities = []
+            for topic, info in sorted(
+                topic_idx.items(),
+                key=lambda x: len(x[1].get("decision_ids", [])),
+                reverse=True,
+            )[:5]:
+                count = len(info.get("decision_ids", []))
+                if count > 0:
+                    recent_decisions = info.get("decisions", [])
+                    if recent_decisions:
+                        latest = recent_decisions[-1].get("summary", "")[:60]
+                        densities.append(f"{topic}: {count} (latest: {latest})")
+                    else:
+                        densities.append(f"{topic}: {count}")
+            if densities:
+                tier0_parts.append(f"- Topics: {', '.join(densities)}")
+        tier0_parts.append("")
+
     tier0_text = "\n".join(tier0_parts)
     tier0_tokens = estimate_tokens(tier0_text)
     remaining = max_tokens - tier0_tokens
@@ -273,6 +326,44 @@ def build_memory_response(
         sections.append("### Other important context")
         sections.extend(other_parts)
         sections.append("")
+
+    # --- Archive excerpts (from lessons.jsonl, pre-filtered by topic) ---
+    if goal and remaining - used_tokens > 200:
+        goal_topics_set = extract_topics(goal, topic_idx)
+        relevant_sessions = set()
+        for t in goal_topics_set:
+            if t in topic_idx:
+                relevant_sessions.update(topic_idx[t].get("decision_ids", []))
+
+        if relevant_sessions:
+            archive_lessons = []
+            if lessons_path.exists():
+                for line in lessons_path.read_text(encoding="utf-8").strip().split("\n"):
+                    if not line.strip():
+                        continue
+                    try:
+                        lesson = json.loads(line)
+                        if lesson.get("session") in relevant_sessions:
+                            archive_lessons.append(lesson)
+                    except json.JSONDecodeError:
+                        continue
+
+            if archive_lessons:
+                excerpt_parts = ["### Archived Lessons (from past consultations)"]
+                for lesson in archive_lessons[-5:]:
+                    text = lesson.get("lesson", "")[:120]
+                    source = lesson.get("source", "?")
+                    session = lesson.get("session", "?")
+                    entry_line = f"- [{source}/{session}] {text}"
+                    line_tokens = estimate_tokens(entry_line)
+                    if used_tokens + line_tokens > remaining:
+                        break
+                    excerpt_parts.append(entry_line)
+                    used_tokens += line_tokens
+
+                if len(excerpt_parts) > 1:
+                    sections.append("\n".join(excerpt_parts))
+                    sections.append("")
 
     return "\n".join(sections).strip()
 
@@ -401,12 +492,25 @@ def record_consultation(
         }
         index.setdefault("pinned", []).append(pin_entry)
 
-    # Topic index
+    # Topic index — grow keywords and track decisions
     ti = index.get("topic_index", {})
+    candidate_words = set(re.findall(r"[a-z0-9-]+", (goal + " " + decision).lower()))
+    candidate_words -= _STOPWORDS
+    candidate_words = {w for w in candidate_words if len(w) >= 4}
     for topic in goal_topics:
-        ti.setdefault(topic, {"decision_ids": [], "memory_ids": []})
-        if session_id not in ti[topic]["decision_ids"]:
-            ti[topic]["decision_ids"].append(session_id)
+        entry = ti.setdefault(topic, {"decision_ids": [], "memory_ids": [], "keywords": [], "decisions": []})
+        entry.setdefault("keywords", [])
+        entry.setdefault("decisions", [])
+        if session_id not in entry["decision_ids"]:
+            entry["decision_ids"].append(session_id)
+
+        # Grow keywords (cap at 30 per topic)
+        existing = set(entry["keywords"])
+        entry["keywords"] = list(existing | candidate_words)[:30]
+
+        # Track decisions (cap at 3 most recent)
+        entry["decisions"].append({"session": session_id, "summary": decision[:100]})
+        entry["decisions"] = entry["decisions"][-3:]
     index["topic_index"] = ti
 
     save_index(project_dir, index)

@@ -1,11 +1,13 @@
 # The Council - Claude Code Plugin
 
-Adversarial consultation with **persistent memory** for Claude Code agent teams. Spawn independent strategist + critic teammates, synthesize as hub, and build project memory that makes consultation #50 smarter than #1.
+Adversarial consultation with **persistent memory** for Claude Code agent teams. Spawn 2 strategists (ambitious + pragmatic) and 1 critic as native teammates, synthesize as hub, and build project memory that makes consultation #50 smarter than #1.
 
 ## Features
 
-- **Native Agent Teams** — Strategist + critic run as native Claude Code teammates (no subprocess hacks)
-- **Three-Tier Memory** — Index (always loaded) + Active (budget-aware) + Archive (on-demand)
+- **Native Agent Teams** — 2 strategists + 1 critic run as native Claude Code teammates (no subprocess hacks)
+- **Three-Tier Memory** — Index (always loaded) + Active (budget-aware) + Archive (auto-surfaced)
+- **Dynamic Topics** — Keywords grow organically from consultations; new topics emerge automatically
+- **Archive Discoverability** — Past lessons surface automatically when relevant to current goals
 - **O(1) Context Cost** — Memory retrieval is budget-capped regardless of consultation count
 - **Goal-Aware Retrieval** — Memory filters by relevance to the current goal, not blind dumps
 - **Zero Dependencies for Retrieval** — No embeddings, no vector DB, no API calls
@@ -63,7 +65,7 @@ Creates `.council/memory/` with the three-tier memory structure.
 |---------|-------------|
 | `/council:setup` | Install dependencies, verify MCP server |
 | `/council:init` | Initialize `.council/` in the current project |
-| `/council:consult <goal>` | Spawn strategist + critic for adversarial consultation |
+| `/council:consult <goal>` | Spawn 2 strategists + 1 critic for adversarial consultation |
 | `/council:status` | View decisions, memory health, compaction recommendations |
 | `/council:maintain` | Compact memory using the curator agent |
 | `/council:reset` | Clear session data (add `--all` to also clear memory) |
@@ -109,15 +111,16 @@ User: /council:consult "goal"
         |
         v
     Hub (main Claude session):
-    1. council_memory_load()  --> MCP returns budget-aware memory
+    1. council_memory_load()  --> MCP returns budget-aware memory + archive excerpts
     2. TeamCreate("council")  --> creates native agent team
-    3. Task(strategist, team_name="council", name="strategist")
-       Task(critic, team_name="council", name="critic")
-       [PARALLEL]                --> teammates analyze independently
-    4. Receives analyses via SendMessage from teammates
-    5. Synthesizes (adopt/resolve/incorporate)
-    6. council_memory_record() --> MCP persists to all tiers
-    7. shutdown_request to both --> TeamDelete
+    3. Task(strategist-alpha, team_name="council", name="strategist-alpha")
+       Task(strategist-beta,  team_name="council", name="strategist-beta")
+       Task(critic,           team_name="council", name="critic")
+       [PARALLEL]                --> 3 teammates analyze independently
+    4. Receives analyses via SendMessage from all three
+    5. Synthesizes (agree/diverge/critique → adopt/resolve/incorporate)
+    6. council_memory_record() --> MCP persists to all tiers + grows topic keywords
+    7. shutdown_request to all --> TeamDelete
     8. Presents to user
 ```
 
@@ -150,7 +153,7 @@ Three-tier, budget-aware memory:
 | 100 | ~4,000 (budget cap) | 9x less |
 | 500 | ~4,000 (budget cap) | 36x less |
 
-Memory retrieval uses **keyword + topic matching** (10 topic categories, zero dependencies). Importance scoring combines base importance, recency bonus, reference count, and staleness penalty.
+Memory retrieval uses **keyword + topic matching** (10 seed categories + dynamic topics that grow from consultations, zero dependencies). When a goal matches archived topics, relevant lessons are automatically surfaced within the token budget. Importance scoring combines base importance, recency bonus, reference count, and staleness penalty.
 
 ### Compaction
 

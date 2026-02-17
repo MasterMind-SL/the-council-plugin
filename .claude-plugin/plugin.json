@@ -1,6 +1,6 @@
 {
   "name": "the-council",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Adversarial consultation with persistent memory for Claude Code agent teams",
   "author": {
     "name": "MasterMind-SL"
