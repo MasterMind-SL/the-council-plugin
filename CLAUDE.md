@@ -23,7 +23,7 @@ The Council plugin's MCP server is not connected. This usually means
 dependencies haven't been installed yet.
 
 Run this to set everything up:
-  /council:setup
+  /council-setup
 
 After it finishes, restart Claude Code for the MCP server to connect.
 ```
@@ -62,7 +62,7 @@ Only consult for: architecture decisions, complex implementations, risk analysis
 
 ### Memory compaction
 
-When `/council:maintain` indicates compaction is needed, use the **Task tool** to launch the `curator` subagent (defined in `agents/curator.md`). The curator runs in its own context window — zero cost to the main session. Do NOT compact memory manually in the main session.
+When `/council-maintain` indicates compaction is needed, use the **Task tool** to launch the `curator` subagent (defined in `agents/curator.md`). The curator runs in its own context window — zero cost to the main session. Do NOT compact memory manually in the main session.
 
 ---
 
@@ -107,7 +107,7 @@ The plugin must be explicitly loaded. Just being in the directory is NOT enough.
 claude --plugin-dir /path/to/the-council-plugin
 ```
 
-Once loaded, skills are namespaced as `/council:consult`, `/council:init`, etc.
+Once loaded, skills are available as `/council-consult`, `/council-init`, etc.
 
 ### Installing from marketplace (for end users)
 
@@ -118,7 +118,7 @@ Inside Claude Code:
 /plugin install the-council@the-council-plugin
 ```
 
-Then restart Claude Code and run `/council:setup` to install dependencies automatically.
+Then restart Claude Code and run `/council-setup` to install dependencies automatically.
 
 Or install from a local clone:
 
@@ -137,14 +137,14 @@ the-council-plugin/
 │   ├── plugin.json          ← manifest (name, version, license)
 │   └── marketplace.json     ← marketplace distribution config
 ├── .mcp.json                ← MCP server config (uv run python -m src.server)
-├── skills/                  ← 7 slash commands (SKILL.md each)
-│   ├── setup/
-│   ├── consult/
-│   ├── init/
-│   ├── status/
-│   ├── maintain/
-│   ├── reset/
-│   └── export/
+├── skills/                  ← 7 skills (SKILL.md each)
+│   ├── council-setup/
+│   ├── council-consult/
+│   ├── council-init/
+│   ├── council-status/
+│   ├── council-maintain/
+│   ├── council-reset/
+│   └── council-export/
 ├── agents/                  ← 3 agents
 │   ├── strategist.md        ← satellite: forward-thinking analysis
 │   ├── critic.md            ← satellite: adversarial analysis
@@ -177,7 +177,7 @@ Components live at the plugin root, NOT inside `.claude-plugin/`. Only `plugin.j
 - **`.claude-plugin/plugin.json`**: Plugin manifest (name: `the-council`)
 - **`.claude-plugin/marketplace.json`**: Marketplace config for `/plugin marketplace add` distribution
 - **`.mcp.json`**: MCP server config. Uses `uv run --directory ${CLAUDE_PLUGIN_ROOT}` for cross-platform compatibility
-- **`skills/`**: 7 slash commands — `setup`, `consult`, `init`, `status`, `maintain`, `reset`, `export`
+- **`skills/`**: 7 skills — `council-setup`, `council-consult`, `council-init`, `council-status`, `council-maintain`, `council-reset`, `council-export`
 - **`agents/`**: 2 satellite prompt sources (`strategist.md`, `critic.md`) + 1 native subagent (`curator.md`)
 
 ## Memory System
@@ -196,7 +196,7 @@ Shared memory:
 
 ### Compaction
 
-When memory grows large (log > 150 lines or log > 80 lines with no active file), `tool_maintain` recommends compaction. The `/council:maintain` skill then spawns the **curator** subagent via Task tool. The curator:
+When memory grows large (log > 150 lines or log > 80 lines with no active file), `tool_maintain` recommends compaction. The `/council-maintain` skill then spawns the **curator** subagent via Task tool. The curator:
 
 1. Reads both role logs, decisions.md, and lessons.jsonl
 2. Identifies duplicates, superseded entries, and mergeable insights

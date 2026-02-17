@@ -6,7 +6,7 @@ Each satellite runs as an independent `claude -p` subprocess with its own full c
 
 ## Features
 
-- **One-Command Setup** - `/council:setup` installs everything automatically
+- **One-Command Setup** - `/council-setup` installs everything automatically
 - **Adversarial Consultation** - Two independent satellites (strategist + critic) with dedicated context windows
 - **Full Research Capabilities** - Satellites can use WebFetch, WebSearch, Task, and all code tools
 - **Persistent Memory** - Decisions, lessons, and role-specific learnings persist across sessions
@@ -18,7 +18,7 @@ Each satellite runs as an independent `claude -p` subprocess with its own full c
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) v1.0.33+
 - Claude Code Max plan (satellites spawn `claude -p` subprocesses)
 - Python 3.11+
-- [uv](https://docs.astral.sh/uv/) (installed automatically by `/council:setup`)
+- [uv](https://docs.astral.sh/uv/) (installed automatically by `/council-setup`)
 
 ## Quick Start
 
@@ -38,7 +38,7 @@ Close and reopen Claude Code. You can open it from **any directory** — the plu
 ### 3. Install dependencies
 
 ```
-/council:setup
+/council-setup
 ```
 
 This installs `uv` (if needed) and Python packages. When it finishes, **restart Claude Code again** so the MCP server can connect.
@@ -46,7 +46,7 @@ This installs `uv` (if needed) and Python packages. When it finishes, **restart 
 ### 4. Initialize in your project
 
 ```
-/council:init
+/council-init
 ```
 
 This creates `.council/` in your project with memory, bus, and logs directories.
@@ -54,10 +54,10 @@ This creates `.council/` in your project with memory, bus, and logs directories.
 ### 5. Start consulting
 
 ```
-/council:consult Should we use PostgreSQL or MongoDB for our event sourcing system?
+/council-consult Should we use PostgreSQL or MongoDB for our event sourcing system?
 ```
 
-> **Note:** The MCP server won't connect until dependencies are installed. If skills seem broken, run `/council:setup` and restart.
+> **Note:** The MCP server won't connect until dependencies are installed. If skills seem broken, run `/council-setup` and restart.
 
 ## Installation Options
 
@@ -105,25 +105,25 @@ Once loaded, you get 7 slash commands:
 
 | Command | Description |
 |---------|-------------|
-| `/council:setup` | Install dependencies (uv, packages) |
-| `/council:init` | Initialize `.council/` in the current project |
-| `/council:consult <goal>` | Spawn strategist + critic for adversarial consultation |
-| `/council:status` | View recent decisions, memory summary, and stats |
-| `/council:maintain` | Check memory health and compact if needed |
-| `/council:reset` | Clear session data (add `--all` to also clear memory) |
-| `/council:export <session_id>` | Export a consultation as shareable markdown |
+| `/council-setup` | Install dependencies (uv, packages) |
+| `/council-init` | Initialize `.council/` in the current project |
+| `/council-consult <goal>` | Spawn strategist + critic for adversarial consultation |
+| `/council-status` | View recent decisions, memory summary, and stats |
+| `/council-maintain` | Check memory health and compact if needed |
+| `/council-reset` | Clear session data (add `--all` to also clear memory) |
+| `/council-export <session_id>` | Export a consultation as shareable markdown |
 
 ### Example workflow
 
 ```
-> /council:init
+> /council-init
 
 Council initialized. Directories created:
 - .council/memory/ (persistent)
 - .council/bus/ (satellite outputs)
 - .council/logs/ (ephemeral)
 
-> /council:consult Should we migrate from REST to GraphQL for our mobile API?
+> /council-consult Should we migrate from REST to GraphQL for our mobile API?
 
 Spawning strategist + critic...
 
@@ -139,7 +139,7 @@ gateway in front of existing REST, mobile-only...
 ### Hub Synthesis
 Adopted critic's gateway approach with strategist's phased timeline...
 
-> /council:status
+> /council-status
 
 Consultations: 1 | Lessons: 3 | Memory: healthy
 ```
@@ -188,7 +188,7 @@ After each consultation, the hub appends:
 - The decision record to `decisions.md`
 - Reusable lessons to `lessons.jsonl`
 
-When memory grows large, `/council:maintain` spawns the curator subagent to compact logs into concise active files — without consuming your main session's context.
+When memory grows large, `/council-maintain` spawns the curator subagent to compact logs into concise active files — without consuming your main session's context.
 
 ## Configuration
 
@@ -207,10 +207,10 @@ limits:
 
 | Problem | Cause | Fix |
 |---------|-------|-----|
-| Skills run but Claude tries wrong approaches | MCP server not connected — dependencies not installed | Run `/council:setup`, restart Claude Code |
+| Skills run but Claude tries wrong approaches | MCP server not connected — dependencies not installed | Run `/council-setup`, restart Claude Code |
 | `tool_consult` fails with "claude executable not found" | `claude` not in PATH for subprocess | Ensure Claude Code CLI is installed globally |
 | Satellites time out after 5 minutes | Complex goal + high max_turns | Simplify the goal or check satellite logs in `.council/logs/` |
-| "Council not initialized" error | `.council/` directory doesn't exist | Run `/council:init` in your project |
+| "Council not initialized" error | `.council/` directory doesn't exist | Run `/council-init` in your project |
 
 ## Development
 

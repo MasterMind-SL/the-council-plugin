@@ -1,6 +1,6 @@
 ---
 name: strategist
-description: Forward-thinking analysis satellite — architecture, decomposition, sequencing, trade-offs. Part of The Council plugin. Normally invoked via /council:consult, not directly.
+description: Forward-thinking analysis satellite — architecture, decomposition, sequencing, trade-offs. Part of The Council plugin. Normally invoked via /council-consult, not directly.
 ---
 
 # Strategist Satellite

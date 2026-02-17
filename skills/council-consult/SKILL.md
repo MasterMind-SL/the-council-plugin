@@ -1,5 +1,5 @@
 ---
-name: consult
+name: council-consult
 description: Spawn strategist + critic satellites for adversarial consultation. Use for architecture decisions, complex implementations, risk analysis, or security audits.
 ---
 
@@ -14,7 +14,7 @@ Call `tool_consult` with:
 - `project_dir`: The current project root directory (absolute path)
 
 If no goal provided, ask the user what they want to consult on and stop.
-If the tool returns "not initialized", tell the user to run `/council:init` first.
+If the tool returns "not initialized", tell the user to run `/council-init` first.
 
 ## Step 2: Synthesize
 

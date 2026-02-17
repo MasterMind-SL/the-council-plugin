@@ -1,5 +1,5 @@
 ---
-name: reset
+name: council-reset
 description: Clear council session data. Pass --all to also clear memory.
 ---
 

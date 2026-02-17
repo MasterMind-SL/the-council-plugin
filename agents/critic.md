@@ -1,6 +1,6 @@
 ---
 name: critic
-description: Adversarial analysis satellite — logical gaps, failure modes, security, scope creep. Part of The Council plugin. Normally invoked via /council:consult, not directly.
+description: Adversarial analysis satellite — logical gaps, failure modes, security, scope creep. Part of The Council plugin. Normally invoked via /council-consult, not directly.
 ---
 
 # Critic Satellite

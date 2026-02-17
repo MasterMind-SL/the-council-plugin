@@ -1,5 +1,5 @@
 ---
-name: maintain
+name: council-maintain
 description: Compact council memory files — deduplicate and clean up. Uses curator subagent to avoid polluting main session context.
 ---
 

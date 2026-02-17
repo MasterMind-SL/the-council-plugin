@@ -1,6 +1,6 @@
 ---
 name: curator
-description: Memory curator — compacts council memory logs by deduplicating, removing superseded entries, and writing concise active files. Invoked by /council:maintain.
+description: Memory curator — compacts council memory logs by deduplicating, removing superseded entries, and writing concise active files. Invoked by /council-maintain.
 memory: project
 ---
 

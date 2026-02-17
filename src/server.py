@@ -395,7 +395,7 @@ async def tool_reset(project_dir: str, full: bool = False) -> str:
 @mcp.tool()
 async def tool_maintain(project_dir: str) -> str:
     """Check memory health and report stats. Actual compaction is done by the
-    curator subagent (agents/curator.md) via the /council:maintain skill.
+    curator subagent (agents/curator.md) via the /council-maintain skill.
 
     Returns memory line counts so the skill can decide whether to invoke the curator.
 

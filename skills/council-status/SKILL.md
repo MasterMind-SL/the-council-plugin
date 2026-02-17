@@ -1,5 +1,5 @@
 ---
-name: status
+name: council-status
 description: Show Council state — recent decisions, memory, feed activity, stats.
 ---
 

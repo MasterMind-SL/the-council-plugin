@@ -1,5 +1,5 @@
 ---
-name: setup
+name: council-setup
 description: Install The Council plugin dependencies. Run this after installing the plugin.
 ---
 
@@ -20,4 +20,4 @@ Run: `uv run --directory "${CLAUDE_PLUGIN_ROOT}" python -c "from mcp.server.fast
 ## Step 4: Done
 Tell the user:
 - "Council plugin installed. Restart Claude Code to connect the MCP server."
-- "Then run `/council:init` in any project to set up consultation."
+- "Then run `/council-init` in any project to set up consultation."

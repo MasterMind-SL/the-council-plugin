@@ -1,5 +1,5 @@
 ---
-name: export
+name: council-export
 description: Export a consultation session as shareable markdown.
 ---
 

@@ -1,5 +1,5 @@
 ---
-name: init
+name: council-init
 description: Initialize The Council in the current project. Creates .council/ directory structure.
 ---
 
