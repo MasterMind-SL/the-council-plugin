@@ -1,10 +1,12 @@
-# The Council - Claude Code Plugin
+# The Council v3.0.0 - Claude Code Plugin
 
-Adversarial consultation with **persistent memory** for Claude Code agent teams. Spawn 2 strategists (ambitious + pragmatic) and 1 critic as native teammates, synthesize as hub, and build project memory that makes consultation #50 smarter than #1.
+Adversarial consultation with **persistent memory** for Claude Code agent teams. Spawn configurable teammates (default: 2 strategists + 1 critic, or custom roles), auto-route between 4 consultation modes, and build project memory that makes consultation #50 smarter than #1.
 
 ## Features
 
-- **Native Agent Teams** — 2 strategists + 1 critic run as native Claude Code teammates (no subprocess hacks)
+- **4 Consultation Modes** — Auto-routed: default, debate (with rebuttals), plan (actionable steps), reflect (decision review)
+- **Configurable Roles** — Use default 3-member council or specify custom roles (architect, security-auditor, ux-reviewer, planner, or your own)
+- **Native Agent Teams** — Teammates run as native Claude Code agents (no subprocess hacks)
 - **Three-Tier Memory** — Index (always loaded) + Active (budget-aware) + Archive (auto-surfaced)
 - **Dynamic Topics** — Keywords grow organically from consultations; new topics emerge automatically
 - **Archive Discoverability** — Past lessons surface automatically when relevant to current goals
@@ -65,7 +67,7 @@ Creates `.council/memory/` with the three-tier memory structure.
 |---------|-------------|
 | `/council:setup` | Install dependencies, verify MCP server |
 | `/council:init` | Initialize `.council/` in the current project |
-| `/council:consult <goal>` | Spawn 2 strategists + 1 critic for adversarial consultation |
+| `/council:consult <goal>` | Adversarial consultation (auto-routed mode, optional custom roles) |
 | `/council:status` | View decisions, memory health, compaction recommendations |
 | `/council:maintain` | Compact memory using the curator agent |
 | `/council:reset` | Clear session data (add `--all` to also clear memory) |
@@ -95,7 +97,7 @@ adoption. Keep REST for internal services, GraphQL for mobile clients...
 Caching harder with GraphQL (no HTTP cache for POST). N+1 query problem.
 Authorization complexity increases. Recommends: start with gateway...
 
-### Hub Synthesis
+### Team Lead Synthesis
 Adopted Beta's gateway approach with Alpha's phased timeline.
 Critic's caching concern addressed with persisted queries.
 Recorded to memory with importance 7.
@@ -106,6 +108,59 @@ Consultations: 4 | Memory: healthy
 Recent: S-004 GraphQL gateway approach, S-003 PgBouncer pooling...
 ```
 
+## Consultation Modes
+
+The team-lead automatically selects a mode based on goal text. No flags needed — just use `/council:consult`.
+
+| Mode | When it activates | What changes |
+|------|-------------------|--------------|
+| **default** | General consultations | Standard flow: teammates analyze in parallel, team-lead synthesizes |
+| **debate** | "compare", "vs", "which is better", "pros and cons", "trade-offs between" | Adds 1 rebuttal round — teammates see each other's positions and revise before synthesis. ~2-3x token cost |
+| **plan** | "plan", "roadmap", "PRD", "spec", "design", "architect", "implementation plan" | Synthesis formatted as numbered actionable steps with dependencies and priorities (P0/P1/P2) |
+| **reflect** | "review our decisions", "retrospective", "what should we focus on", "gaps in our approach" | Loads memory + status. Teammates analyze decision history. Synthesis outputs prioritized future consultation recommendations |
+
+### Examples
+
+```
+# Default mode — general architecture question
+/council:consult Should we use PostgreSQL or MongoDB for our event sourcing system?
+
+# Debate mode — triggered by "vs" / "compare"
+/council:consult Compare server-side rendering vs client-side rendering for our dashboard
+
+# Plan mode — triggered by "roadmap" / "implementation plan"
+/council:consult Create an implementation plan for migrating to microservices
+
+# Reflect mode — triggered by "review our decisions"
+/council:consult Review our decisions and identify gaps in our approach
+```
+
+## Custom Roles
+
+By default, `/council:consult` spawns 3 teammates: strategist-alpha (ambitious), strategist-beta (pragmatic), and critic (adversarial). You can override this by appending `ROLES:` to the goal.
+
+```
+/council:consult Should we add real-time features? ROLES: architect, security-auditor, critic
+```
+
+### Rules
+
+- Max 5 teammates per consultation
+- If no adversarial role (critic or auditor) is listed, one is auto-added
+- Non-matching role names get a generic specialist prompt
+- Works with all consultation modes (default, debate, plan, reflect)
+
+### Curated Roles
+
+| Role | Focus |
+|------|-------|
+| `architect` | System design, scalability, component boundaries |
+| `security-auditor` | Threat modeling, vulnerabilities, compliance (adversarial) |
+| `ux-reviewer` | User experience, accessibility, interaction patterns |
+| `planner` | Milestones, dependencies, sequencing, resource estimation |
+
+You can also use any custom name (e.g., `data-engineer`, `devops-lead`). Custom names get a generic specialist prompt based on the role name.
+
 ## How It Works
 
 ```
@@ -115,28 +170,47 @@ User: /council:consult "goal"
     Skill expands protocol
         |
         v
-    Hub (main Claude session):
-    1. council_memory_load()  --> MCP returns budget-aware memory + archive excerpts
-    2. TeamCreate("council")  --> creates native agent team
-    3. Task(strategist-alpha, team_name="council", name="strategist-alpha")
-       Task(strategist-beta,  team_name="council", name="strategist-beta")
-       Task(critic,           team_name="council", name="critic")
-       [PARALLEL]                --> 3 teammates analyze independently
-    4. Receives analyses via SendMessage from all three
-    5. Synthesizes (agree/diverge/critique → adopt/resolve/incorporate)
-    6. council_memory_record() --> MCP persists to all tiers + grows topic keywords
-    7. shutdown_request to all --> TeamDelete
-    8. Presents to user
+    Team-lead (main Claude session):
+    1. Verify .council/ exists
+    2. Route mode (analyze goal → default/debate/plan/reflect)
+    3. council_memory_load()  --> MCP returns budget-aware memory + archive excerpts
+       (reflect mode also loads council_memory_status)
+    4. TeamCreate("council")  --> creates native agent team
+    5. Task(teammates) [PARALLEL]  --> default: strategist-alpha, strategist-beta, critic
+       (custom ROLES: one teammate per role, max 5, adversarial auto-added)
+    6. Receives analyses via SendMessage from all teammates
+       (debate mode: forward analyses → 1 rebuttal round → revised positions)
+    7. Synthesizes (agree/diverge/critique → adopt/resolve/incorporate)
+       (plan mode: numbered steps with P0/P1/P2 priorities)
+       (reflect mode: prioritized future consultation recommendations)
+    8. council_memory_record() --> MCP persists to all tiers + grows topic keywords
+    9. shutdown_request to all --> TeamDelete --> Presents to user (includes mode used)
 ```
 
 The MCP server handles **memory persistence only** (6 tools). Orchestration is done by the skill using native Claude Code agent teams — no subprocess management, no temp files, no Windows hacks.
 
 ## Agents
 
+### Default council (no ROLES clause)
+
 | Agent | Role | How it runs |
 |-------|------|-------------|
 | `strategist` (x2) | Alpha: ambitious, forward-thinking. Beta: pragmatic, conservative. | Native teammates via Task tool |
 | `critic` | Adversarial: gaps, failure modes, scope creep, security | Native teammate via Task tool |
+
+### Custom roles (via ROLES clause)
+
+| Agent | Role | How it runs |
+|-------|------|-------------|
+| `architect` | System design, scalability, component boundaries | Native teammate via Task tool |
+| `security-auditor` | Threat modeling, vulnerabilities, compliance (adversarial) | Native teammate via Task tool |
+| `ux-reviewer` | User experience, accessibility, interaction patterns | Native teammate via Task tool |
+| `planner` | Milestones, dependencies, sequencing, resource estimation | Native teammate via Task tool |
+
+### Maintenance
+
+| Agent | Role | How it runs |
+|-------|------|-------------|
 | `curator` | Memory compaction: deduplicate, score, prune entries | Subagent via Task tool |
 
 ## Memory System
@@ -198,6 +272,10 @@ the-council-plugin/
 ├── agents/
 │   ├── strategist.md          # Teammate: forward-thinking analysis
 │   ├── critic.md              # Teammate: adversarial analysis
+│   ├── architect.md           # Teammate: system design analysis
+│   ├── security-auditor.md    # Teammate: adversarial security analysis
+│   ├── ux-reviewer.md         # Teammate: UX and accessibility analysis
+│   ├── planner.md             # Teammate: execution planning
 │   └── curator.md             # Subagent: memory compaction
 ├── skills/
 │   ├── council-consult/       # THE ORCHESTRATOR
