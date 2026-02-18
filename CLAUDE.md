@@ -58,6 +58,10 @@ Users can append `ROLES: role1, role2, ...` to the goal. When present:
 
 Most tasks do NOT need consultation. Only consult for: architecture decisions, complex implementations, risk analysis, security audits.
 
+## After Plugin Updates
+
+When a user updates the plugin, tell them to run `/council:update` in their project. This migrates `.council/` data to the new version without losing existing decisions or memory.
+
 ## Setup Issues
 
 If MCP tools are unavailable, tell the user to run `/council:setup` then restart Claude Code.

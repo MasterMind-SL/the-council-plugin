@@ -61,7 +61,7 @@ Creates `.council/memory/` with the three-tier memory structure.
 
 ## Usage
 
-6 slash commands:
+7 slash commands:
 
 | Command | Description |
 |---------|-------------|
@@ -70,6 +70,7 @@ Creates `.council/memory/` with the three-tier memory structure.
 | `/council:consult <goal>` | Adversarial consultation (auto-routed mode, optional custom roles) |
 | `/council:status` | View decisions, memory health, compaction recommendations |
 | `/council:maintain` | Compact memory using the curator agent |
+| `/council:update` | Migrate council data after a plugin update |
 | `/council:reset` | Clear session data (add `--all` to also clear memory) |
 
 ### Example workflow
@@ -283,7 +284,8 @@ the-council-plugin/
 │   ├── council-status/
 │   ├── council-maintain/
 │   ├── council-reset/
-│   └── council-setup/
+│   ├── council-setup/
+│   └── council-update/          # Migration after plugin updates
 ├── CLAUDE.md                  # Runtime instructions only
 ├── pyproject.toml
 └── uv.lock
@@ -323,6 +325,16 @@ Add to your project's `.claude/settings.json`:
   }
 }
 ```
+
+## Upgrading
+
+After updating the plugin to a new version, run in each project that has `.council/`:
+
+```
+/council:update
+```
+
+This migrates your existing council data (decisions, lessons, memory) to the new version without losing anything. It also reports what's new.
 
 ## Troubleshooting
 
