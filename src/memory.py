@@ -2,7 +2,6 @@
 
 import json
 import re
-import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -51,42 +50,6 @@ def extract_topics(text: str, topic_index: dict | None = None) -> set[str]:
         if keywords and any(kw in words or any(kw in w for w in words) for kw in keywords):
             topics.add(topic)
     return topics
-
-
-# ---------------------------------------------------------------------------
-# Importance scoring
-# ---------------------------------------------------------------------------
-def compute_importance(
-    base: int,
-    created: str,
-    referenced_count: int = 0,
-    superseded: bool = False,
-) -> int:
-    """Compute importance score for a memory entry."""
-    try:
-        created_date = datetime.fromisoformat(created)
-        days_old = (datetime.now(timezone.utc) - created_date).days
-    except (ValueError, TypeError):
-        days_old = 0
-
-    # Recency bonus
-    if days_old <= 7:
-        recency = 2
-    elif days_old <= 30:
-        recency = 1
-    else:
-        recency = 0
-
-    # Reference bonus (max +3)
-    ref_bonus = min(referenced_count, 3)
-
-    # Staleness penalty
-    staleness = 0
-    if superseded:
-        staleness = 5
-
-    score = base + recency + ref_bonus - staleness
-    return max(1, min(10, score))
 
 
 # ---------------------------------------------------------------------------

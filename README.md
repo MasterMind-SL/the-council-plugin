@@ -81,18 +81,23 @@ Created: .council/memory/ (index.json, decisions.md, lessons.jsonl, role logs)
 > /council:consult Should we migrate from REST to GraphQL for our mobile API?
 
 Loading memory (3 consultations, budget: 4000 tokens)...
-Spawning strategist + critic as teammates...
+Spawning strategist-alpha + strategist-beta + critic as teammates...
 
-### Strategist Analysis
-Recommends GraphQL for mobile: reduces over-fetching, single endpoint,
-type-safe schema. Phased migration: new endpoints in GraphQL, legacy REST...
+### Strategist Alpha (ambitious)
+Full GraphQL migration: reduces over-fetching, single endpoint,
+type-safe schema. Push for complete rewrite with phased rollout...
+
+### Strategist Beta (pragmatic)
+GraphQL gateway in front of existing REST. Minimal risk, incremental
+adoption. Keep REST for internal services, GraphQL for mobile clients...
 
 ### Critic Analysis
-HARD NO on full migration. Caching is harder (no HTTP cache for POST).
-N+1 query problem. Recommends: GraphQL gateway in front of existing REST...
+Caching harder with GraphQL (no HTTP cache for POST). N+1 query problem.
+Authorization complexity increases. Recommends: start with gateway...
 
 ### Hub Synthesis
-Adopted critic's gateway approach with strategist's phased timeline.
+Adopted Beta's gateway approach with Alpha's phased timeline.
+Critic's caching concern addressed with persisted queries.
 Recorded to memory with importance 7.
 
 > /council:status
@@ -130,9 +135,9 @@ The MCP server handles **memory persistence only** (6 tools). Orchestration is d
 
 | Agent | Role | How it runs |
 |-------|------|-------------|
-| `strategist` | Forward-thinking: architecture, decomposition, trade-offs | Native teammate via Task tool |
+| `strategist` (x2) | Alpha: ambitious, forward-thinking. Beta: pragmatic, conservative. | Native teammates via Task tool |
 | `critic` | Adversarial: gaps, failure modes, scope creep, security | Native teammate via Task tool |
-| `curator` | Memory compaction: deduplicate, score, prune entries | Native subagent via Task tool |
+| `curator` | Memory compaction: deduplicate, score, prune entries | Subagent via Task tool |
 
 ## Memory System
 
@@ -142,7 +147,7 @@ Three-tier, budget-aware memory:
 |------|---------|-------|------|
 | **0: Index** | Always loaded — consultation count, recent decisions, pinned items, topic index | `index.json` | ~200-500 tokens |
 | **1: Active** | Budget-aware — scored, tagged, goal-filtered entries | `{role}-active.json` | ~1,000-4,000 tokens |
-| **2: Archive** | Never auto-loaded — full append-only logs, raw history | `{role}-log.md`, `decisions.md`, `lessons.jsonl` | Unbounded |
+| **2: Archive** | Auto-surfaced when relevant — append-only logs, lessons, decision history | `{role}-log.md`, `decisions.md`, `lessons.jsonl` | Unbounded |
 
 ### Scalability
 
