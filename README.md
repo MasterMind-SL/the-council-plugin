@@ -1,6 +1,8 @@
-# The Council v3.0.0 - Claude Code Plugin
+# The Council v3.1.0-beta - Claude Code Plugin
 
-Adversarial consultation with **persistent memory** for Claude Code agent teams. Spawn configurable teammates (default: 2 strategists + 1 critic, or custom roles), auto-route between 4 consultation modes, and build project memory that makes consultation #50 smarter than #1.
+Adversarial consultation with **persistent memory** for Claude Code agent teams. Spawn configurable teammates (default: 2 strategists + 1 quality engineer, or custom roles), auto-route between 4 consultation modes, and build project memory that makes consultation #50 smarter than #1.
+
+**v3.1.0-beta**: Anti-deferral system ensures 100% of requested features are implemented. Feature completeness gate check. Claude Velocity context across all agents.
 
 ## Features
 
@@ -68,7 +70,7 @@ Creates `.council/memory/` with the three-tier memory structure.
 | `/council:setup` | Install dependencies, verify MCP server |
 | `/council:init` | Initialize `.council/` in the current project |
 | `/council:consult <goal>` | Adversarial consultation (auto-routed mode, optional custom roles) |
-| `/council:build <goal>` | Full build pipeline: 3 consultations (PRD, tech deck, backlog) + parallel implementation |
+| `/council:build <goal>` | Full build pipeline: 3 consultations (PRD, tech deck, backlog) + feature gate + implementation |
 | `/council:status` | View decisions, memory health, compaction recommendations |
 | `/council:maintain` | Compact memory using the curator agent |
 | `/council:update` | Migrate council data after a plugin update |
@@ -118,7 +120,7 @@ The team-lead automatically selects a mode based on goal text. No flags needed �
 |------|-------------------|--------------|
 | **default** | General consultations | Standard flow: teammates analyze in parallel, team-lead synthesizes |
 | **debate** | "compare", "vs", "which is better", "pros and cons", "trade-offs between" | Adds 1 rebuttal round — teammates see each other's positions and revise before synthesis. ~2-3x token cost |
-| **plan** | "plan", "roadmap", "PRD", "spec", "design", "architect", "implementation plan" | Synthesis formatted as numbered actionable steps with dependencies and priorities (P0/P1/P2) |
+| **plan** | "plan", "roadmap", "PRD", "spec", "design", "architect", "implementation plan" | Synthesis formatted as numbered actionable steps with dependencies and implementation order (all mandatory) |
 | **reflect** | "review our decisions", "retrospective", "what should we focus on", "gaps in our approach" | Loads memory + status. Teammates analyze decision history. Synthesis outputs prioritized future consultation recommendations |
 
 ### Examples
@@ -159,7 +161,7 @@ By default, `/council:consult` spawns 3 teammates: strategist-alpha (ambitious),
 | `architect` | System design, scalability, component boundaries |
 | `security-auditor` | Threat modeling, vulnerabilities, compliance (adversarial) |
 | `ux-reviewer` | User experience, accessibility, interaction patterns |
-| `planner` | Milestones, dependencies, sequencing, resource estimation |
+| `planner` | Workstreams, dependencies, sequencing, integration checkpoints |
 
 You can also use any custom name (e.g., `data-engineer`, `devops-lead`). Custom names get a generic specialist prompt based on the role name.
 
@@ -178,17 +180,26 @@ You can also use any custom name (e.g., `data-engineer`, `devops-lead`). Custom 
 | 1. PRD | strategist-alpha, strategist-beta, critic | `.council/build/prd.md` |
 | 2. Tech Deck | architect, strategist-alpha, security-auditor | `.council/build/tech-deck.md` |
 | 3. Backlog | planner, strategist-beta, critic | `.council/build/backlog.md` |
-| 4. Implementation | 2-4 dev teams (parallel) | Working code |
+| 3.5 Feature Gate | team-lead | Verifies 100% feature coverage |
+| 4. Implementation | 1 team (3-4 members) | Working code |
 
-Each consultation phase follows the standard council lifecycle. Artifacts flow forward: the PRD feeds the tech deck, both feed the backlog, and the backlog drives parallel implementation.
+Each consultation phase follows the standard council lifecycle. Artifacts flow forward: the PRD feeds the tech deck, both feed the backlog, and the backlog drives implementation.
+
+### Anti-deferral system
+
+The build pipeline enforces full feature implementation:
+- **No priority tiers** — All features from the user prompt are mandatory (no P0/P1/P2)
+- **Claude Velocity** — Agents plan for Claude speed (~2 hours), not human timelines
+- **Quality Engineer** — The critic improves implementations, never cuts scope
+- **Feature Gate** — Between backlog and implementation, verifies every requested feature is assigned
 
 ### Implementation phase
 
 The team-lead:
 1. Executes foundation tasks (project setup, shared types)
-2. Spawns 2-4 dev teams, one per workstream from the backlog
-3. Dev teams implement their workstreams in parallel
-4. Team-lead coordinates sync points and handles blockers
+2. Spawns 1 team with 3-4 developer members
+3. Members implement their workstreams (can use subagents for internal parallelization)
+4. Team-lead coordinates integration checkpoints and handles blockers
 5. Post-integration: wires everything together, runs tests
 
 ### Flow
@@ -209,8 +220,12 @@ User: /council:build "goal"
     → reads prd.md + tech-deck.md → writes .council/build/backlog.md → records to memory
         |
         v
-    Phase 4: Parallel Implementation (2-4 dev teams)
-    → reads all artifacts → foundation tasks → parallel workstreams → post-integration
+    Phase 3.5: Feature Completeness Gate Check
+    → compares original prompt vs backlog → fixes any gaps
+        |
+        v
+    Phase 4: Implementation (1 team, 3-4 members)
+    → reads all artifacts → foundation tasks → workstreams → post-integration
     → records to memory (pinned)
 ```
 
@@ -236,7 +251,7 @@ User: /council:consult "goal"
     6. Receives analyses via SendMessage from all teammates
        (debate mode: forward analyses → 1 rebuttal round → revised positions)
     7. Synthesizes (agree/diverge/critique → adopt/resolve/incorporate)
-       (plan mode: numbered steps with P0/P1/P2 priorities)
+       (plan mode: numbered steps, all mandatory, with implementation order)
        (reflect mode: prioritized future consultation recommendations)
     8. council_memory_record() --> MCP persists to all tiers + grows topic keywords
     9. shutdown_request to all --> TeamDelete --> Presents to user (includes mode used)
@@ -250,8 +265,8 @@ The MCP server handles **memory persistence only** (6 tools). Orchestration is d
 
 | Agent | Role | How it runs |
 |-------|------|-------------|
-| `strategist` (x2) | Alpha: ambitious, forward-thinking. Beta: pragmatic, conservative. | Native teammates via Task tool |
-| `critic` | Adversarial: gaps, failure modes, scope creep, security | Native teammate via Task tool |
+| `strategist` (x2) | Alpha: ambitious, forward-thinking. Beta: pragmatic about quality, not scope. | Native teammates via Task tool |
+| `critic` | Quality engineering: architecture risks, security gaps, implementation improvements | Native teammate via Task tool |
 
 ### Custom roles (via ROLES clause)
 
@@ -260,7 +275,7 @@ The MCP server handles **memory persistence only** (6 tools). Orchestration is d
 | `architect` | System design, scalability, component boundaries | Native teammate via Task tool |
 | `security-auditor` | Threat modeling, vulnerabilities, compliance (adversarial) | Native teammate via Task tool |
 | `ux-reviewer` | User experience, accessibility, interaction patterns | Native teammate via Task tool |
-| `planner` | Milestones, dependencies, sequencing, resource estimation | Native teammate via Task tool |
+| `planner` | Workstreams, dependencies, sequencing, integration checkpoints | Native teammate via Task tool |
 
 ### Maintenance
 

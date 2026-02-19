@@ -148,6 +148,27 @@ When beta is ready to go stable:
    - Update `CLAUDE.md` maintainer table
    - Commit and push
 
+### Post-release checklist
+
+After ANY code push to QA or main, complete ALL of these steps before finishing:
+
+1. **Plugin repo** (this repo):
+   - [ ] Code changes committed and pushed
+   - [ ] All 3 version files in sync (`.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `pyproject.toml`)
+   - [ ] `README.md` updated to reflect new features, changed behaviors, and correct version number
+   - [ ] `skills/council-update/SKILL.md` updated with migration steps for the new version
+   - [ ] `CLAUDE.md` updated if runtime behavior changed (modes, synthesis rules, pipeline phases)
+
+2. **Marketplace repo** (`MasterMind-SL/Marketplace`):
+   - [ ] `.claude-plugin/marketplace.json` — description updated for the relevant entry (stable or beta)
+   - [ ] `README.md` — version table, commands table, and feature list updated
+   - [ ] `CLAUDE.md` — maintainer table version bumped if version changed
+   - [ ] Committed and pushed
+
+3. **Verification**:
+   - [ ] `git status` clean on both repos
+   - [ ] Both repos pushed to remote
+
 ## Setup Issues
 
 If MCP tools are unavailable, tell the user to run `/council:setup` then restart Claude Code.
