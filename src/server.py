@@ -10,10 +10,12 @@ from mcp.server.fastmcp import FastMCP
 from .memory import (
     build_memory_response,
     get_memory_health,
+    get_original_prompt,
     load_index,
     record_consultation,
     save_active,
     save_index,
+    store_original_prompt,
 )
 
 mcp = FastMCP("the-council")
@@ -53,6 +55,7 @@ async def council_memory_init(project_dir: str) -> str:
         "recent_decisions": [],
         "pinned": [],
         "topic_index": {},
+        "original_prompt": "",
     }
     (council / "memory" / "index.json").write_text(
         json.dumps(index, indent=2), encoding="utf-8"
@@ -221,6 +224,7 @@ async def council_memory_reset(project_dir: str, full: bool = False) -> str:
             "recent_decisions": [],
             "pinned": [],
             "topic_index": {},
+            "original_prompt": "",
         }
         (memory / "index.json").write_text(json.dumps(index, indent=2), encoding="utf-8")
         (memory / "decisions.md").write_text("# Hub Decision Record\n", encoding="utf-8")

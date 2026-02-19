@@ -163,7 +163,7 @@ Wait for all rebuttal messages.
 Apply the same synthesis rules as DEFAULT MODE, then format your synthesis as an actionable plan:
 - Numbered steps with clear deliverables
 - Dependencies between steps noted (e.g., "depends on step 2")
-- Priority level for each step (P0/P1/P2)
+- Implementation order (all steps are mandatory — do not defer or deprioritize any requested feature)
 - Each step should be specific enough for Claude to implement
 
 ### REFLECT MODE

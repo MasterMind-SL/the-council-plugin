@@ -25,13 +25,14 @@ Tell the user:
 
 > **Build pipeline cost warning**
 >
-> This will run 3 sequential council consultations (9 agent spawns) followed by parallel implementation with 2+ dev teams. Estimated token cost: **50,000-150,000+ tokens** depending on project complexity.
+> This will run 3 sequential council consultations (9 agent spawns) followed by implementation with 1 dev team (3-4 members). Estimated token cost: **50,000-150,000+ tokens** depending on project complexity.
 >
 > Phases:
 > 1. PRD consultation (strategist-alpha, strategist-beta, critic)
 > 2. Tech deck consultation (architect, strategist-alpha, security-auditor)
 > 3. Backlog consultation (planner, strategist-beta, critic)
-> 4. Parallel implementation (2+ dev teams from backlog)
+> 4. Feature completeness gate check
+> 5. Implementation (1 team, 3-4 members from backlog)
 >
 > Continue? (y/n)
 
@@ -41,7 +42,7 @@ Wait for the user to confirm. If they decline, stop.
 
 Create the directory `.council/build/` if it does not exist.
 
-## Step 1: Load Memory
+## Step 1: Load Memory & Store Original Prompt
 
 Call `council_memory_load` with:
 - `project_dir`: current project root (absolute path)
@@ -49,6 +50,8 @@ Call `council_memory_load` with:
 - `max_tokens`: 4000
 
 Save the returned memory text. It will be injected into all consultation phases.
+
+Also save `$ARGUMENTS` as the original user prompt — you will use it in the Phase 3.5 gate check to verify feature completeness.
 
 ---
 
@@ -72,12 +75,14 @@ GOAL: $ARGUMENTS
 
 CONTEXT: You are in Phase 1 of a build pipeline. Your task is to help create a Product Requirements Document (PRD).
 
+CLAUDE VELOCITY: Implementation is by Claude Code AI agents. 15,000+ LOC in ~2 hours. Never estimate in human timelines. No deferrals.
+
 MEMORY (from past consultations):
 <memory from Step 1>
 
 You are Strategist Alpha (ambitious, forward-thinking). Analyze this goal and propose PRD content. 400-600 words.
-Cover: problem statement, target users, success metrics, core features (P0/P1/P2), user stories, scope boundaries, and non-functional requirements.
-Push for the best possible product outcome.
+Cover: problem statement, target users, success metrics, core features (ALL features are mandatory — no priority tiers), user stories, and non-functional requirements.
+Push for the best possible product outcome. Every feature the user mentioned must be included.
 When done, send your full analysis to "team-lead" via SendMessage.
 ```
 
@@ -87,12 +92,14 @@ GOAL: $ARGUMENTS
 
 CONTEXT: You are in Phase 1 of a build pipeline. Your task is to help create a Product Requirements Document (PRD).
 
+CLAUDE VELOCITY: Implementation is by Claude Code AI agents. 15,000+ LOC in ~2 hours. Never estimate in human timelines. No deferrals.
+
 MEMORY (from past consultations):
 <memory from Step 1>
 
 You are Strategist Beta (pragmatic, conservative). Analyze this goal and propose PRD content. 400-600 words.
-Cover: problem statement, target users, success metrics, core features (P0/P1/P2), user stories, scope boundaries, and non-functional requirements.
-Focus on what is achievable, minimize risk and scope creep. Identify MVP boundaries.
+Cover: problem statement, target users, success metrics, core features (ALL features are mandatory — no priority tiers), user stories, and non-functional requirements.
+Focus on quality and robustness. Recommend the simplest correct implementation for each feature. Never cut features.
 When done, send your full analysis to "team-lead" via SendMessage.
 ```
 
@@ -100,14 +107,16 @@ When done, send your full analysis to "team-lead" via SendMessage.
 ```
 GOAL: $ARGUMENTS
 
-CONTEXT: You are in Phase 1 of a build pipeline. Your task is to critique a Product Requirements Document (PRD).
+CONTEXT: You are in Phase 1 of a build pipeline. Your task is to improve a Product Requirements Document (PRD).
+
+CLAUDE VELOCITY: Implementation is by Claude Code AI agents. 15,000+ LOC in ~2 hours. Never estimate in human timelines. No deferrals.
 
 MEMORY (from past consultations):
 <memory from Step 1>
 
-Critique this goal as a PRD. 400-600 words. Start with the most critical issue.
-Focus on: missing requirements, ambiguous scope, conflicting user stories, unrealistic success metrics, hidden technical constraints, missing edge cases.
-Every issue needs a specific fix. Prioritize by severity.
+Review this goal as a PRD. 400-600 words. Start with the most critical quality issue.
+Focus on: missing requirements, ambiguous specifications, conflicting user stories, hidden technical constraints, missing error handling, edge cases.
+Every issue needs a specific fix. Your job is to make the PRD BETTER, not SMALLER. Never recommend removing features.
 When done, send your full analysis to "team-lead" via SendMessage.
 ```
 
@@ -118,18 +127,18 @@ Wait for all 3 teammates to send their analyses.
 Apply standard synthesis rules:
 - Where teammates **agree** → adopt immediately
 - Where teammates **diverge** → evaluate which approach better fits the context
-- Where the critic raises **valid concerns** → incorporate fixes
+- Where the critic raises **valid quality concerns** → incorporate fixes
 - Be explicit about what you adopted from each teammate
+- **CRITICAL**: Do NOT create priority tiers. ALL features from the user prompt are mandatory. Never synthesize a result that removes or defers a feature the user requested.
 
 Format as a PRD with these sections:
 1. **Problem Statement**
 2. **Target Users**
 3. **Success Metrics** (measurable)
-4. **Core Features** (P0 = must-have, P1 = should-have, P2 = nice-to-have)
+4. **Core Features** (ALL mandatory — list every feature the user requested with implementation approach)
 5. **User Stories** (As a..., I want..., So that...)
-6. **Scope Boundaries** (in-scope vs out-of-scope)
-7. **Non-Functional Requirements** (performance, security, accessibility)
-8. **Assumptions & Constraints**
+6. **Non-Functional Requirements** (performance, security, accessibility)
+7. **Assumptions & Constraints**
 
 ### 1.4 Write PRD artifact
 
@@ -181,12 +190,14 @@ GOAL: Create a technical architecture document for the following PRD.
 PRD:
 <full content of .council/build/prd.md>
 
+CLAUDE VELOCITY: Implementation is by Claude Code AI agents. 15,000+ LOC in ~2 hours. Design for ALL features — nothing is too complex to implement in this session.
+
 MEMORY (from past consultations):
 <memory from Step 1>
 
-You are the Architect. Design the system architecture. 400-600 words.
+You are the Architect. Design the system architecture for ALL features in the PRD. 400-600 words.
 Cover: technology stack recommendations, component architecture (with responsibilities and boundaries), data models/schema, API contracts, integration points, deployment architecture.
-Be specific about file structure and naming conventions for the target project.
+Be specific about file structure and naming conventions for the target project. Include how to technically implement each feature.
 When done, send your full analysis to "team-lead" via SendMessage.
 ```
 
@@ -197,12 +208,14 @@ GOAL: Create a technical architecture document for the following PRD.
 PRD:
 <full content of .council/build/prd.md>
 
+CLAUDE VELOCITY: Implementation is by Claude Code AI agents. 15,000+ LOC in ~2 hours. Never estimate in human timelines. No deferrals.
+
 MEMORY (from past consultations):
 <memory from Step 1>
 
 You are Strategist Alpha (ambitious, forward-thinking). Propose technical approaches. 400-600 words.
 Focus on: technology selection trade-offs, scalability path, developer experience, testing strategy, CI/CD pipeline, performance targets.
-Push for the best possible technical foundation.
+Push for the best possible technical foundation. All features must be covered.
 When done, send your full analysis to "team-lead" via SendMessage.
 ```
 
@@ -213,12 +226,14 @@ GOAL: Review the technical architecture for the following PRD.
 PRD:
 <full content of .council/build/prd.md>
 
+CLAUDE VELOCITY: Implementation is by Claude Code AI agents. 15,000+ LOC in ~2 hours. Never recommend removing features for security — recommend how to implement them securely.
+
 MEMORY (from past consultations):
 <memory from Step 1>
 
 Audit the technical implications of this PRD. 400-600 words.
 Focus on: authentication/authorization model, data protection, input validation, API security, dependency risks, secrets management, OWASP top 10 relevance.
-Every finding MUST include a specific remediation.
+Every finding MUST include a specific remediation. Never recommend removing a feature — recommend how to make it secure.
 When done, send your full analysis to "team-lead" via SendMessage.
 ```
 
@@ -284,51 +299,57 @@ Launch ALL 3 teammates in the same message. All MUST include `team_name: "counci
 
 **Planner** — `name: "planner"`, `subagent_type: "the-council:planner"`:
 ```
-GOAL: Create an implementation backlog for parallel dev teams based on the PRD and tech deck below.
+GOAL: Create an implementation backlog for a dev team based on the PRD and tech deck below.
 
 PRD:
 <full content of .council/build/prd.md>
 
 TECH DECK:
 <full content of .council/build/tech-deck.md>
+
+CLAUDE VELOCITY: Implementation is by Claude Code AI agents. 15,000+ LOC in ~2 hours. Estimate in implementation phases (~20 min each), not calendar time. No deferrals.
 
 MEMORY (from past consultations):
 <memory from Step 1>
 
 You are the Planner. Create a detailed implementation backlog. 500-700 words.
-CRITICAL: Structure the backlog into 2-4 WORKSTREAMS that can be executed in parallel by independent dev teams.
+CRITICAL: Every feature from the user prompt MUST be assigned to a workstream. No exceptions. No deferrals.
+Structure the backlog into 3-4 WORKSTREAMS that can be divided among team members.
 Each workstream must:
-- Have a clear name and scope
+- Have a clear name and ALL assigned features listed
 - List specific tasks as numbered items
 - Note dependencies between tasks (within and across workstreams)
 - Mark cross-workstream synchronization points
 - Estimate relative complexity (S/M/L) for each task
 
-Group by: foundation/setup, core features, secondary features, testing/polish.
+Group by: foundation/setup, then feature workstreams (all features included), then integration/testing.
 When done, send your full analysis to "team-lead" via SendMessage.
 ```
 
 **Strategist Beta** — `name: "strategist-beta"`, `subagent_type: "the-council:strategist"`:
 ```
-GOAL: Create an implementation backlog for parallel dev teams based on the PRD and tech deck below.
+GOAL: Create an implementation backlog for a dev team based on the PRD and tech deck below.
 
 PRD:
 <full content of .council/build/prd.md>
 
 TECH DECK:
 <full content of .council/build/tech-deck.md>
+
+CLAUDE VELOCITY: Implementation is by Claude Code AI agents. 15,000+ LOC in ~2 hours. Never estimate in human timelines. No deferrals.
 
 MEMORY (from past consultations):
 <memory from Step 1>
 
 You are Strategist Beta (pragmatic, conservative). Review and propose a backlog. 500-700 words.
-Focus on: task ordering that minimizes risk, shared foundation work before parallel work, tasks that could be descoped to MVP, integration risks between parallel workstreams.
+Focus on: task ordering that minimizes risk, shared foundation work before parallel work, integration risks between workstreams, quality and robustness of each feature.
+All features must be included — recommend the simplest correct implementation for complex features. Never cut features.
 When done, send your full analysis to "team-lead" via SendMessage.
 ```
 
 **Critic** — `name: "critic"`, `subagent_type: "the-council:critic"`:
 ```
-GOAL: Critique the implementation backlog plan for the following PRD and tech deck.
+GOAL: Review the implementation backlog plan for the following PRD and tech deck.
 
 PRD:
 <full content of .council/build/prd.md>
@@ -336,12 +357,14 @@ PRD:
 TECH DECK:
 <full content of .council/build/tech-deck.md>
 
+CLAUDE VELOCITY: Implementation is by Claude Code AI agents. 15,000+ LOC in ~2 hours. No deferrals.
+
 MEMORY (from past consultations):
 <memory from Step 1>
 
-Critique the implementation plan. 500-700 words. Start with the most critical issue.
-Focus on: missing tasks, incorrect dependencies, parallelization risks (merge conflicts, interface mismatches), testing gaps, tasks too large or vague, missing error handling/edge cases.
-Every issue needs a specific fix.
+Review the implementation plan. 500-700 words. Start with the most critical quality issue.
+Focus on: missing tasks, missing features from the PRD, incorrect dependencies, parallelization risks (merge conflicts, interface mismatches), testing gaps, tasks too large or vague, missing error handling/edge cases.
+Every issue needs a specific fix. Your job is to ensure ALL features are covered, not to cut scope.
 When done, send your full analysis to "team-lead" via SendMessage.
 ```
 
@@ -349,21 +372,25 @@ Wait for all 3 teammates to send their analyses.
 
 ### 3.4 Synthesize Backlog
 
-Apply standard synthesis rules. Format as a backlog with these sections:
+Apply standard synthesis rules. Additionally:
+- **CRITICAL**: Every feature from the user prompt MUST appear in a workstream. After synthesis, verify: compare backlog features vs original user prompt. If any are missing, add them now.
+- Never synthesize a result that removes or defers a feature the user requested.
+
+Format as a backlog with these sections:
 
 1. **Foundation Tasks** (must complete before parallel work begins)
    - Numbered tasks with complexity estimates (S/M/L)
-2. **Workstream A: [Name]** (one dev team)
+2. **Workstream A: [Name]** (assigned to team member)
    - Numbered tasks with complexity estimates
    - Dependencies noted
-3. **Workstream B: [Name]** (another dev team)
+3. **Workstream B: [Name]** (assigned to team member)
    - Numbered tasks with complexity estimates
    - Dependencies noted
 4. **(Optional) Workstream C/D** if the project warrants it
-5. **Synchronization Points** (where workstreams must integrate/verify)
+5. **Integration Checkpoints** (where workstreams must sync and verify compatibility)
 6. **Post-Integration Tasks** (final testing, polish, deployment)
 
-CRITICAL: The workstreams MUST be designed for parallel execution. Each workstream should be independently implementable with minimal cross-team blocking.
+CRITICAL: All workstreams combined must cover 100% of the user's requested features. Each workstream should be independently implementable with minimal cross-blocking.
 
 ### 3.5 Write Backlog artifact
 
@@ -386,13 +413,30 @@ Call `council_memory_record` with:
 1. For each teammate: `SendMessage` with `type: "shutdown_request"`
 2. `TeamDelete` to remove the team
 
-Tell the user: "Phase 3 complete. Backlog → `.council/build/backlog.md`. Starting Phase 4: Implementation."
+Tell the user: "Phase 3 complete. Backlog → `.council/build/backlog.md`. Running feature completeness gate check."
 
 ---
 
-## PHASE 4: Parallel Implementation
+## PHASE 3.5: Feature Completeness Gate Check
 
-> This is NOT a consultation. This is actual code implementation using parallel dev teams.
+> This gate ensures no features were lost during consultation phases.
+
+### 3.8 Verify feature completeness
+
+Before starting implementation:
+
+1. **Extract features from original prompt**: List all features, capabilities, and requirements the user mentioned in their original `$ARGUMENTS` prompt.
+2. **Extract features from backlog**: List all features assigned to workstreams in `.council/build/backlog.md`.
+3. **Compare**: For each feature in the original prompt, verify it appears in the backlog.
+4. **Fix gaps**: If any features are missing or were deferred, add them to the appropriate workstream in the backlog now. Rewrite `.council/build/backlog.md` with the additions.
+
+Tell the user: "Gate check complete. All features verified. Starting Phase 4: Implementation."
+
+---
+
+## PHASE 4: Implementation
+
+> This is NOT a consultation. This is actual code implementation using 1 team with 3-4 members.
 
 ### 4.1 Read all artifacts
 
@@ -405,37 +449,37 @@ Parse the backlog to identify workstreams and their tasks.
 
 ### 4.2 Execute Foundation Tasks
 
-Before spawning parallel teams, execute the **Foundation Tasks** from the backlog yourself (team-lead). These are setup tasks like:
+Before spawning the team, execute the **Foundation Tasks** from the backlog yourself (team-lead). These are setup tasks like:
 - Creating project directory structure
 - Initializing configuration files
 - Installing dependencies
-- Creating shared types/interfaces/models that both teams will need
+- Creating shared types/interfaces/models that team members will need
 
-This ensures parallel teams have a stable foundation to build on.
+This ensures team members have a stable foundation to build on.
 
 ### 4.3 Plan team assignments
 
 From the backlog, identify the workstreams. Create team assignments:
-- **Minimum 2 teams, maximum 4 teams**
-- Each team gets one or more workstreams
-- Name teams: "build-team-alpha", "build-team-beta", "build-team-gamma", "build-team-delta"
+- **1 team with 3-4 members**
+- Each member gets one or more workstreams
+- Name members: "dev-alpha", "dev-beta", "dev-gamma", and optionally "dev-delta"
 
-### 4.4 Spawn dev teams (in PARALLEL)
+### 4.4 Spawn dev team
 
-For EACH dev team, use `TeamCreate` and then spawn a developer teammate via **Task tool**.
+Use `TeamCreate` to create the team:
+- `team_name`: "build-team"
+- `description`: "Implementation team for: <short goal>"
 
-**Create each team:**
-- `team_name`: "build-team-alpha" (or beta, gamma, delta)
-- `description`: "Implementation team for workstream: <workstream name>"
+Then spawn **3-4 developer teammates in PARALLEL** via **Task tool**, all on the same team.
 
-**Spawn a developer teammate per team:**
-- `name`: "dev-alpha" (or "dev-beta", etc.)
+For EACH developer:
+- `name`: "dev-alpha" (or "dev-beta", "dev-gamma", "dev-delta")
 - `subagent_type`: "general-purpose" (needs full Write/Edit/Bash capabilities)
-- `team_name`: the team name created above
+- `team_name`: "build-team"
 
 Prompt for each developer:
 ```
-You are a developer on <team-name>. Your job is to implement the following workstream.
+You are a developer on build-team. Your job is to implement the following workstream.
 
 PROJECT CONTEXT:
 <brief summary from PRD: problem statement + core features relevant to this workstream>
@@ -452,26 +496,27 @@ RULES:
 3. Include error handling and input validation
 4. Add inline comments for complex logic only
 5. Create tests for each component (unit tests minimum)
-6. After completing each task, send a brief status update to "team-lead" via SendMessage
-7. After completing ALL tasks, send a final summary to "team-lead" listing all files created/modified
-8. If you encounter a blocker requiring the other team's output, send a message to "team-lead" and continue with the next non-blocked task
+6. You have autonomy to use subagents (Task tool) for internal parallelization if beneficial
+7. After completing each task, send a brief status update to "team-lead" via SendMessage
+8. After completing ALL tasks, send a final summary to "team-lead" listing all files created/modified
+9. If you encounter a blocker requiring another member's output, send a message to "team-lead" and continue with the next non-blocked task
 ```
 
 ### 4.5 Coordinate implementation
 
 As team-lead during implementation:
 1. **Monitor progress**: Wait for status messages from dev teammates
-2. **Handle blockers**: If a team reports a cross-team blocker, relay information between teams via `SendMessage`
+2. **Handle blockers**: If a member reports a cross-workstream blocker, relay information between members via `SendMessage`
 3. **Track completion**: Keep track of which workstream tasks are done
 4. **Do NOT implement code yourself** during this phase — only coordinate
 
-### 4.6 Handle synchronization points
+### 4.6 Handle integration checkpoints
 
-When all teams reach a synchronization point (as defined in the backlog):
-1. Ask each team to pause and report current state
+When all members reach an integration checkpoint (as defined in the backlog):
+1. Ask each member to pause and report current state
 2. Verify interface compatibility between workstreams
-3. If mismatches exist, instruct the relevant team to fix them
-4. Give the go-ahead to continue past the sync point
+3. If mismatches exist, instruct the relevant member to fix them
+4. Give the go-ahead to continue past the checkpoint
 
 ### 4.7 Post-integration
 
@@ -483,9 +528,8 @@ After all workstream tasks are completed:
 
 ### 4.8 Cleanup Phase 4
 
-For each dev team:
 1. `SendMessage` with `type: "shutdown_request"` to each dev teammate
-2. `TeamDelete` to remove each team
+2. `TeamDelete` to remove the team
 
 ### 4.9 Record implementation
 

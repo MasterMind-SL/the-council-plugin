@@ -117,6 +117,7 @@ def load_index(project_dir: str) -> dict:
         "recent_decisions": [],
         "pinned": [],
         "topic_index": {},
+        "original_prompt": "",
     }
 
 
@@ -143,6 +144,22 @@ def save_active(project_dir: str, role: str, data: dict) -> None:
     active_path = _memory_dir(project_dir) / f"{role}-active.json"
     active_path.parent.mkdir(parents=True, exist_ok=True)
     active_path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# Original prompt storage (for feature-tracking in build pipeline)
+# ---------------------------------------------------------------------------
+def store_original_prompt(project_dir: str, prompt: str) -> None:
+    """Store the original user prompt for feature-tracking throughout the pipeline."""
+    index = load_index(project_dir)
+    index["original_prompt"] = prompt
+    save_index(project_dir, index)
+
+
+def get_original_prompt(project_dir: str) -> str:
+    """Retrieve the stored original user prompt."""
+    index = load_index(project_dir)
+    return index.get("original_prompt", "")
 
 
 # ---------------------------------------------------------------------------

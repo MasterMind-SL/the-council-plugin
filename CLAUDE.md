@@ -6,6 +6,17 @@ This plugin provides **memory-only MCP tools** (`council_memory_*`) and **skills
 
 The plugin works from **any directory**. Skills and tools are available globally once loaded.
 
+## Implementation Philosophy
+
+Council exists to produce BETTER implementations, not SMALLER ones. These rules apply to ALL plugin interactions:
+
+1. **Never defer, deprioritize, or remove features the user requested.** Every feature from the user's prompt must be assigned to a workstream and implemented.
+2. **The critic improves quality, not reduces scope.** The critic's job is to find quality, security, and architecture issues — and propose fixes. Never to classify features as "out of scope" or into priority tiers.
+3. **Claude Code implements in hours — never plan in human timelines.** Claude produces 15,000+ LOC in ~2 hours. Estimates in "weeks", "months", or "sprints" are forbidden.
+4. **Banned words/concepts** (must never appear in agent outputs): "scope creep", "P0/P1/P2", "defer", "out of scope", "fast-follow", "future phase", "fallback", "descope", "weeks", "months", "sprint".
+
+---
+
 ## Team Lead Protocol
 
 After `/council:consult`, you are the **team-lead**. The skill handles spawning teammates and loading memory.
@@ -18,7 +29,7 @@ Before spawning teammates, analyze the goal and select a mode automatically:
 |------|----------|----------|
 | **default** | General consultations (no special triggers) | Standard: analyze, synthesize, record |
 | **debate** | "debate", "vs", "compare", "which is better", "pros and cons", "trade-offs between" | Adds 1 rebuttal round: forward analyses to others, collect revised positions, then synthesize. ~2-3x token cost |
-| **plan** | "plan", "roadmap", "PRD", "spec", "design", "architect", "implementation plan" | Same as default but synthesis output is numbered actionable steps with dependencies and priorities (P0/P1/P2) |
+| **plan** | "plan", "roadmap", "PRD", "spec", "design", "architect", "implementation plan" | Same as default but synthesis output is numbered actionable steps with dependencies and implementation order (all mandatory) |
 | **reflect** | "review our decisions", "what should we focus on", "gaps in our approach", "retrospective" | Loads memory + status before spawning. Teammates analyze decision history. Synthesis outputs prioritized future consultation recommendations |
 
 ### Custom Roles
@@ -36,6 +47,7 @@ Users can append `ROLES: role1, role2, ...` to the goal. When present:
 2. Be explicit about what you adopted from each teammate
 3. **One round only** for team-lead synthesis. Debate mode allows 1 rebuttal round among teammates.
 4. Record results via `council_memory_record` (non-adversarial summaries -> `strategist_summary`, adversarial summaries -> `critic_summary`)
+5. **Never synthesize a result that removes or defers a feature the user requested.** All requested features are mandatory.
 
 ## MCP Tools (6)
 
@@ -61,11 +73,12 @@ After `/council:build`, you are the **team-lead** for a 4-phase pipeline:
 1. **PRD Consultation** (strategist-alpha, strategist-beta, critic) → `.council/build/prd.md`
 2. **Tech Deck Consultation** (architect, strategist-alpha, security-auditor) → `.council/build/tech-deck.md`
 3. **Backlog Consultation** (planner, strategist-beta, critic) → `.council/build/backlog.md`
-4. **Parallel Implementation** (2-4 dev teams) → implements backlog workstreams
+4. **Feature Completeness Gate Check** — verifies ALL user-requested features are in the backlog before implementation
+5. **Implementation** (1 team, 3-4 members) → implements backlog workstreams. Each member can use subagents (Task tool) for internal parallelization.
 
 Each consultation phase follows the standard council lifecycle (create team, spawn, analyze, synthesize, record, cleanup). Artifacts are written to `.council/build/` and flow forward between phases. Implementation uses `general-purpose` agents with full code editing capabilities.
 
-**Cost**: 9+ agent spawns for consultations + 2-4 dev teams. Expect 50,000-150,000+ tokens. The skill confirms with the user before starting.
+**Cost**: 9+ agent spawns for consultations + 1 team with 3-4 members. Expect 50,000-150,000+ tokens. The skill confirms with the user before starting.
 
 ## When NOT to Consult
 
