@@ -83,6 +83,58 @@ The plugin marketplace repo is `MasterMind-SL/Marketplace`. Install command:
 /plugin install the-council@the-council-plugin
 ```
 
+## Versioning & Release Process
+
+### Branch strategy
+
+- **main**: stable release (e.g., v3.0.0). Marketplace entry: `the-council`
+- **QA**: beta/next release (e.g., v3.1.0-beta). Marketplace entry: `the-council-beta`
+
+Both use the same MCP server name (`"the-council"`). Users must install **one at a time** — uninstall stable before installing beta, or vice versa.
+
+### Version files to update
+
+When bumping version, update ALL of these:
+1. `.claude-plugin/plugin.json` → `version` field
+2. `.claude-plugin/marketplace.json` → `metadata.version` + `plugins[0].version`
+3. `pyproject.toml` → `version` field (for uv/pip)
+
+### Promoting beta to stable
+
+When beta is ready to go stable:
+
+1. **Plugin repo** (`the-council-plugin`):
+   - Merge QA → main: `git checkout main && git merge QA`
+   - Bump version to the stable release (e.g., `3.1.0`)
+   - Update all 3 version files listed above
+   - Push: `git push origin main`
+
+2. **Marketplace repo** (`MasterMind-SL/Marketplace`):
+   - `.claude-plugin/marketplace.json`:
+     - Update the stable entry: bump `version`, update `description` with new features
+     - Remove the beta entry entirely
+   - `README.md`:
+     - Bump version in the plugins table
+     - Remove the "The Council Beta" commands section
+     - Move `/council:build` to the stable commands table
+     - Remove the beta install line
+   - `CLAUDE.md`:
+     - Bump version in maintainer table, remove beta row
+   - Commit and push
+
+3. **Tell users**: Run `/council:update` in their projects after updating the plugin
+
+### Publishing a new beta
+
+1. Create or update QA branch from main
+2. Bump version to `X.Y.Z-beta` in all 3 version files
+3. Push QA branch
+4. In Marketplace repo:
+   - Add/update the beta entry in `.claude-plugin/marketplace.json` with `"ref": "QA"` in the source
+   - Add beta section to `README.md` with new commands
+   - Update `CLAUDE.md` maintainer table
+   - Commit and push
+
 ## Setup Issues
 
 If MCP tools are unavailable, tell the user to run `/council:setup` then restart Claude Code.

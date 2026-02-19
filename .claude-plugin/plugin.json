@@ -1,7 +1,7 @@
 {
   "name": "the-council",
-  "version": "3.0.0",
-  "description": "Adversarial consultation with persistent memory for Claude Code agent teams",
+  "version": "3.1.0-beta",
+  "description": "Adversarial consultation with persistent memory for Claude Code agent teams. Includes /council:build pipeline.",
   "author": {
     "name": "MasterMind-SL"
   },
