@@ -29,7 +29,7 @@ Adversarial consultation with **persistent memory** for Claude Code agent teams.
 Inside Claude Code:
 
 ```
-/plugin marketplace add MasterMind-SL/the-council-plugin
+/plugin marketplace add MasterMind-SL/Marketplace
 /plugin install the-council@the-council-plugin
 ```
 
@@ -61,13 +61,14 @@ Creates `.council/memory/` with the three-tier memory structure.
 
 ## Usage
 
-7 slash commands:
+8 slash commands:
 
 | Command | Description |
 |---------|-------------|
 | `/council:setup` | Install dependencies, verify MCP server |
 | `/council:init` | Initialize `.council/` in the current project |
 | `/council:consult <goal>` | Adversarial consultation (auto-routed mode, optional custom roles) |
+| `/council:build <goal>` | Full build pipeline: 3 consultations (PRD, tech deck, backlog) + parallel implementation |
 | `/council:status` | View decisions, memory health, compaction recommendations |
 | `/council:maintain` | Compact memory using the curator agent |
 | `/council:update` | Migrate council data after a plugin update |
@@ -161,6 +162,59 @@ By default, `/council:consult` spawns 3 teammates: strategist-alpha (ambitious),
 | `planner` | Milestones, dependencies, sequencing, resource estimation |
 
 You can also use any custom name (e.g., `data-engineer`, `devops-lead`). Custom names get a generic specialist prompt based on the role name.
+
+## Build Pipeline
+
+`/council:build` chains 3 sequential council consultations followed by parallel implementation with dev teams. It automates the full product development lifecycle from idea to working code.
+
+```
+/council:build A real-time collaborative markdown editor with presence indicators
+```
+
+### Phases
+
+| Phase | Roles | Output |
+|-------|-------|--------|
+| 1. PRD | strategist-alpha, strategist-beta, critic | `.council/build/prd.md` |
+| 2. Tech Deck | architect, strategist-alpha, security-auditor | `.council/build/tech-deck.md` |
+| 3. Backlog | planner, strategist-beta, critic | `.council/build/backlog.md` |
+| 4. Implementation | 2-4 dev teams (parallel) | Working code |
+
+Each consultation phase follows the standard council lifecycle. Artifacts flow forward: the PRD feeds the tech deck, both feed the backlog, and the backlog drives parallel implementation.
+
+### Implementation phase
+
+The team-lead:
+1. Executes foundation tasks (project setup, shared types)
+2. Spawns 2-4 dev teams, one per workstream from the backlog
+3. Dev teams implement their workstreams in parallel
+4. Team-lead coordinates sync points and handles blockers
+5. Post-integration: wires everything together, runs tests
+
+### Flow
+
+```
+User: /council:build "goal"
+        |
+        v
+    Phase 1: PRD Consultation (3 agents)
+    → writes .council/build/prd.md → records to memory
+        |
+        v
+    Phase 2: Tech Deck Consultation (3 agents)
+    → reads prd.md → writes .council/build/tech-deck.md → records to memory
+        |
+        v
+    Phase 3: Backlog Consultation (3 agents)
+    → reads prd.md + tech-deck.md → writes .council/build/backlog.md → records to memory
+        |
+        v
+    Phase 4: Parallel Implementation (2-4 dev teams)
+    → reads all artifacts → foundation tasks → parallel workstreams → post-integration
+    → records to memory (pinned)
+```
+
+> **Warning**: This is token-intensive (~50,000-150,000+ tokens). The skill confirms with the user before starting. Recommended for greenfield features or major redesigns.
 
 ## How It Works
 
@@ -279,6 +333,7 @@ the-council-plugin/
 │   ├── planner.md             # Teammate: execution planning
 │   └── curator.md             # Subagent: memory compaction
 ├── skills/
+│   ├── council-build/         # BUILD PIPELINE (3 consultations + parallel implementation)
 │   ├── council-consult/       # THE ORCHESTRATOR
 │   ├── council-init/
 │   ├── council-status/

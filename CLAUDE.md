@@ -54,6 +54,19 @@ Users can append `ROLES: role1, role2, ...` to the goal. When present:
 - **Archive Discoverability**: Past lessons surface automatically when relevant to the current goal.
 - **Budget-Aware**: Retrieval never exceeds token budget regardless of consultation count.
 
+## Build Pipeline
+
+After `/council:build`, you are the **team-lead** for a 4-phase pipeline:
+
+1. **PRD Consultation** (strategist-alpha, strategist-beta, critic) → `.council/build/prd.md`
+2. **Tech Deck Consultation** (architect, strategist-alpha, security-auditor) → `.council/build/tech-deck.md`
+3. **Backlog Consultation** (planner, strategist-beta, critic) → `.council/build/backlog.md`
+4. **Parallel Implementation** (2-4 dev teams) → implements backlog workstreams
+
+Each consultation phase follows the standard council lifecycle (create team, spawn, analyze, synthesize, record, cleanup). Artifacts are written to `.council/build/` and flow forward between phases. Implementation uses `general-purpose` agents with full code editing capabilities.
+
+**Cost**: 9+ agent spawns for consultations + 2-4 dev teams. Expect 50,000-150,000+ tokens. The skill confirms with the user before starting.
+
 ## When NOT to Consult
 
 Most tasks do NOT need consultation. Only consult for: architecture decisions, complex implementations, risk analysis, security audits.
@@ -61,6 +74,14 @@ Most tasks do NOT need consultation. Only consult for: architecture decisions, c
 ## After Plugin Updates
 
 When a user updates the plugin, tell them to run `/council:update` in their project. This migrates `.council/` data to the new version without losing existing decisions or memory.
+
+## Distribution
+
+The plugin marketplace repo is `MasterMind-SL/Marketplace`. Install command:
+```
+/plugin marketplace add MasterMind-SL/Marketplace
+/plugin install the-council@the-council-plugin
+```
 
 ## Setup Issues
 
