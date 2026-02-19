@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__plugin_the-council_the-council__council_memory_status"
+    ]
+  }
+}
