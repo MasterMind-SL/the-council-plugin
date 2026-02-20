@@ -49,7 +49,8 @@ Read `.council/memory/index.json`. Check for the `plugin_version` field:
    - **Scaled implementation**: Build pipeline uses 1 team with 3-4 members (each can use subagents for internal parallelization).
    - **Original prompt tracking**: Memory stores the original user prompt for feature-tracking throughout the build pipeline.
    - **Plan mode updated**: Outputs implementation order (all mandatory) instead of P0/P1/P2 priorities.
-   - **Banned words**: Agent outputs no longer contain "scope creep", "P0/P1/P2", "defer", "out of scope", "fast-follow", "future phase", "fallback", "descope", "weeks", "months", "sprint".
+   - **Banned words**: Agent outputs no longer contain "scope creep", "P0/P1/P2", "defer", "out of scope", "fast-follow", "future phase", "descope", "weeks", "months", "sprint".
+   - **Consistent banned words**: All 5 agents (strategist, critic, planner, architect, security-auditor) now share the same complete banned words list including "P0/P1/P2" and "Never classify features into priority tiers".
 
 ### From v3.1.0-beta to v3.1.0-beta (already current)
 

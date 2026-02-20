@@ -1,6 +1,6 @@
 ---
 name: council-build
-description: Full build pipeline — 3 council consultations (PRD, tech deck, backlog) followed by parallel implementation with dev teams.
+description: Full build pipeline — 3 council consultations (PRD, tech deck, backlog) followed by implementation with 1 dev team (3-4 members).
 ---
 
 # Council Build Pipeline

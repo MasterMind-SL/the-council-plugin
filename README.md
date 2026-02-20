@@ -167,7 +167,7 @@ You can also use any custom name (e.g., `data-engineer`, `devops-lead`). Custom 
 
 ## Build Pipeline
 
-`/council:build` chains 3 sequential council consultations followed by parallel implementation with dev teams. It automates the full product development lifecycle from idea to working code.
+`/council:build` chains 3 sequential council consultations followed by implementation with 1 dev team (3-4 members). It automates the full product development lifecycle from idea to working code.
 
 ```
 /council:build A real-time collaborative markdown editor with presence indicators

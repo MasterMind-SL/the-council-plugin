@@ -13,7 +13,7 @@ Council exists to produce BETTER implementations, not SMALLER ones. These rules 
 1. **Never defer, deprioritize, or remove features the user requested.** Every feature from the user's prompt must be assigned to a workstream and implemented.
 2. **The critic improves quality, not reduces scope.** The critic's job is to find quality, security, and architecture issues — and propose fixes. Never to classify features as "out of scope" or into priority tiers.
 3. **Claude Code implements in hours — never plan in human timelines.** Claude produces 15,000+ LOC in ~2 hours. Estimates in "weeks", "months", or "sprints" are forbidden.
-4. **Banned words/concepts** (must never appear in agent outputs): "scope creep", "P0/P1/P2", "defer", "out of scope", "fast-follow", "future phase", "fallback", "descope", "weeks", "months", "sprint".
+4. **Banned words/concepts** (must never appear in agent outputs): "scope creep", "P0/P1/P2", "defer", "out of scope", "fast-follow", "future phase", "descope", "weeks", "months", "sprint".
 
 ---
 
