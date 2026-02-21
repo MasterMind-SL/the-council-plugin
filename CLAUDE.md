@@ -41,6 +41,17 @@ Users can append `ROLES: role1, role2, ...` to the goal. When present:
 - When no ROLES clause: default 3-member council (strategist-alpha, strategist-beta, critic)
 - Available curated roles: `architect`, `security-auditor`, `ux-reviewer`, `planner`
 
+### Memory Injection
+
+Each teammate receives a **MEMORY LENS** directive before their injected memory block. This is a static, role-specific string that tells them how to weight entries:
+- **Strategist Alpha**: weight opportunities, implementation approaches, architectural decisions
+- **Strategist Beta**: weight risks of over-engineering, simpler alternatives, past failures from complexity
+- **Critic**: weight risks, past failures, quality issues, unresolved warnings; validate `[stale: Xd]` entries before others cite them
+- **Custom roles**: weight entries most relevant to their specialist domain
+- **Reflect mode**: review all entries for gaps, contradictions, and follow-up topics
+
+The MEMORY LENS is injected by the `council-consult` skill — team-lead does not need to add it manually.
+
 ### Synthesis Rules
 
 1. Synthesize: for each teammate's analysis — agreements -> adopt, divergences -> YOU pick, adversarial flags -> incorporate fix

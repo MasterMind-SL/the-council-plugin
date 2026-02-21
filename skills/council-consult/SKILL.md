@@ -72,6 +72,7 @@ Use the **Task tool** to launch ALL teammates in **PARALLEL** (all in the same m
 ```
 GOAL: <the user's goal>
 
+MEMORY LENS: As a strategist, weight entries about opportunities, implementation approaches, and architectural decisions most heavily.
 MEMORY (from past consultations):
 <strategist-relevant portion of memory from Step 3>
 
@@ -84,6 +85,7 @@ When done, send your full analysis to "team-lead" via SendMessage.
 ```
 GOAL: <the user's goal>
 
+MEMORY LENS: As a strategist, weight entries about risks of over-engineering, simpler alternatives, and past failures from complexity. Prefer cautious interpretations.
 MEMORY (from past consultations):
 <strategist-relevant portion of memory from Step 3>
 
@@ -96,6 +98,7 @@ When done, send your full analysis to "team-lead" via SendMessage.
 ```
 GOAL: <the user's goal>
 
+MEMORY LENS: As a critic, weight entries about risks, past failures, quality issues, and unresolved warnings most heavily. Pay special attention to entries marked [stale: Xd] — validate them before others cite them.
 MEMORY (from past consultations):
 <critic-relevant portion of memory from Step 3>
 
@@ -107,6 +110,7 @@ When done, send your full analysis to "team-lead" via SendMessage.
 ```
 GOAL: <the user's goal>
 
+MEMORY LENS: As a <role-name>, weight entries most relevant to your specialist domain. Interpret past decisions through your expertise.
 MEMORY (from past consultations):
 <relevant portion of memory from Step 3>
 
@@ -117,6 +121,7 @@ When done, send your full analysis to "team-lead" via SendMessage.
 
 **REFLECT MODE override**: Instead of the user's literal goal, give each teammate this prompt:
 ```
+MEMORY LENS: Review all entries for gaps, contradictions, and topics that need follow-up consultation.
 DECISION HISTORY:
 <full output from council_memory_load AND council_memory_status>
 

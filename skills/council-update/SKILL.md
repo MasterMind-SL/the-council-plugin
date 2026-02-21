@@ -52,9 +52,27 @@ Read `.council/memory/index.json`. Check for the `plugin_version` field:
    - **Banned words**: Agent outputs no longer contain "scope creep", "P0/P1/P2", "defer", "out of scope", "fast-follow", "future phase", "descope", "weeks", "months", "sprint".
    - **Consistent banned words**: All 5 agents (strategist, critic, planner, architect, security-auditor) now share the same complete banned words list including "P0/P1/P2" and "Never classify features into priority tiers".
 
-### From v3.1.0-beta to v3.1.0-beta (already current)
+### From v3.1.0-beta (pre-memory-improvements) to v3.1.0-beta (post-memory-improvements)
 
-Report: "Already on v3.1.0-beta. No migration needed." and stop.
+This is an in-place update within the same version. The schema bumped from v1→v2 with a new `last_validated` field on memory entries.
+
+1. **Auto-migration already applied**: `load_index()` and `load_active()` auto-migrate v1 files to v2 on first read — no manual action needed for existing data.
+
+2. **Verify schema version**: Read each `*-active.json` file in `.council/memory/`. Each should have `"version": 2`. If any still show `"version": 1`, open and resave them (the next council operation will auto-migrate them).
+
+3. **No data loss**: All existing entries are fully compatible. The `last_validated` field defaults to `created` for legacy entries when computing staleness.
+
+4. **Report what's new in this update**:
+   - **Synonym expansion**: `extract_topics()` now expands synonyms (e.g. "autoscaling" → "performance", "postgres" → "database") and bigrams, improving topic matching across 50+ synonym pairs.
+   - **Staleness markers**: Memory entries older than 90 days show a `[stale: Xd]` indicator. Stale entries score 0.7x in relevance (pinned entries always exempt).
+   - **`last_validated` field**: New entries record when they were last validated. Existing entries fall back to `created` date for staleness calculation.
+   - **3-tier packing**: `build_memory_response()` adapts detail level to budget — generous (≥2500 tokens remaining): full text; normal (800-2500): one-liners upgraded to full text for top entries; tight (<800): one-liners only.
+   - **Archive improvements**: Archive excerpts now select top-12 by relevance (was last-5 by recency), with a 200-lesson scan cap and 600-token budget cap to prevent blowout.
+   - **MEMORY LENS directives**: Each teammate in `/council:consult` now receives a role-specific lens directive before the memory block, guiding them to weight entries relevant to their perspective.
+
+### From v3.1.0-beta to v3.1.0-beta (already current, post-memory-improvements)
+
+Report: "Already on the latest v3.1.0-beta. No migration needed." and stop.
 
 ### Future migrations (template)
 

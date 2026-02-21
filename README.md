@@ -304,6 +304,13 @@ Three-tier, budget-aware memory:
 
 Memory retrieval uses **keyword + topic matching** (10 seed categories + dynamic topics that grow from consultations, zero dependencies). When a goal matches archived topics, relevant lessons are automatically surfaced within the token budget. Importance scoring combines base importance, recency bonus, reference count, and staleness penalty.
 
+**Retrieval improvements (v3.1.0-beta):**
+- **Synonym expansion** — `extract_topics()` maps 50+ synonyms to canonical keywords (e.g. `autoscaling` → `performance`, `postgres` → `database`) and extracts bigrams, so topic matching works across phrasing variants.
+- **Staleness markers** — entries older than 90 days display `[stale: Xd]` and score 0.7× in relevance. Pinned entries are always exempt.
+- **3-tier packing** — `build_memory_response()` adapts detail to budget: generous (≥2500 tokens remaining) uses full text; normal (800–2500) emits one-liners then upgrades top entries to full text; tight (<800) uses one-liners only.
+- **Archive top-12 by relevance** — archive excerpts now select the top-12 most relevant lessons (was last-5 by recency), with a 200-lesson scan cap and 600-token archive budget cap.
+- **MEMORY LENS directives** — each teammate receives a role-specific lens before the injected memory block, guiding them to weight entries most relevant to their perspective (e.g. strategist weights opportunities; critic weights risks and stale entries).
+
 ### Compaction
 
 When active memory exceeds thresholds, `/council:maintain` spawns the curator agent to:

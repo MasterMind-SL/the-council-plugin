@@ -29,11 +29,46 @@ _STOPWORDS = frozenset({
     "about", "they", "them", "then", "there", "here", "only", "some", "very",
 })
 
+SYNONYM_MAP: dict[str, str] = {
+    "k8s": "kubernetes", "kube": "kubernetes", "eks": "kubernetes",
+    "gke": "kubernetes", "aks": "kubernetes", "helm": "kubernetes",
+    "ec2": "aws", "s3": "aws", "lambda": "aws", "rds": "aws",
+    "gcp": "cloud", "azure": "cloud",
+    "ci-cd": "pipeline", "github-actions": "pipeline", "jenkins": "pipeline",
+    "gitlab-ci": "pipeline", "circleci": "pipeline",
+    "nginx": "deploy", "caddy": "deploy", "traefik": "deploy",
+    "mongo": "database", "mongodb": "database", "dynamo": "database",
+    "dynamodb": "database", "pg": "database", "postgres": "database",
+    "redis": "cache", "memcached": "cache",
+    "autoscaling": "performance", "scale-out": "performance",
+    "horizontal-scaling": "performance", "elastic-scaling": "performance",
+    "okta": "sso", "auth0": "oauth", "cognito": "oauth", "keycloak": "sso",
+    "passkey": "credential", "webauthn": "credential",
+    "mfa": "authentication", "2fa": "authentication", "totp": "authentication",
+    "nextjs": "react", "remix": "react", "gatsby": "react",
+    "nuxt": "vue", "svelte": "component",
+    "shadcn": "tailwind", "mui": "component", "chakra": "component",
+    "jest": "test", "vitest": "test", "pytest": "test",
+    "cypress": "e2e", "playwright": "e2e", "selenium": "e2e",
+    "cqrs": "pattern", "ddd": "architecture", "hexagonal": "architecture",
+    "rabbitmq": "queue", "sqs": "queue", "nats": "message",
+    "pulsar": "stream", "spark": "etl",
+}
+
 
 def extract_topics(text: str, topic_index: dict | None = None) -> set[str]:
     """Extract topic tags from text. Checks dynamic keywords from topic_index first,
     falls back to TOPIC_KEYWORDS seed."""
-    words = set(re.findall(r"[a-z0-9-]+", text.lower()))
+    raw_words = set(re.findall(r"[a-z0-9-]+", text.lower()))
+
+    # Expand synonyms
+    expanded_synonyms: set[str] = {SYNONYM_MAP[w] for w in raw_words if w in SYNONYM_MAP}
+
+    # Bigrams from original word sequence (preserves text order)
+    word_seq = re.findall(r"[a-z0-9]+", text.lower())
+    bigrams: set[str] = {f"{word_seq[i]}-{word_seq[i+1]}" for i in range(len(word_seq) - 1)}
+
+    words = raw_words | expanded_synonyms | bigrams
     topics = set()
 
     # Merge dynamic keywords from topic_index with seed keywords
@@ -66,14 +101,17 @@ def compute_relevance(entry: dict, goal: str, topic_index: dict | None = None) -
     else:
         topic_score = 0.0
 
-    # Keyword overlap
-    goal_words = set(re.findall(r"[a-z0-9-]+", goal.lower()))
+    # Keyword overlap (split direct vs synonym scoring)
+    goal_words_raw = set(re.findall(r"[a-z0-9-]+", goal.lower()))
+    goal_words_expanded = {SYNONYM_MAP[w] for w in goal_words_raw if w in SYNONYM_MAP}
     entry_text = entry.get("text", "") + " " + entry.get("headline", "")
     entry_words = set(re.findall(r"[a-z0-9-]+", entry_text.lower()))
-    if goal_words:
-        keyword_overlap = len(goal_words & entry_words) / max(len(goal_words), 1)
-    else:
-        keyword_overlap = 0.0
+    direct_overlap = len(goal_words_raw & entry_words) / max(len(goal_words_raw), 1)
+    synonym_overlap = (
+        len(goal_words_expanded & entry_words) / max(len(goal_words_expanded), 1)
+        if goal_words_expanded else 0.0
+    )
+    keyword_overlap = direct_overlap + synonym_overlap * 0.5
 
     # Recency factor
     try:
@@ -83,7 +121,36 @@ def compute_relevance(entry: dict, goal: str, topic_index: dict | None = None) -
         days_old = 0
     recency = max(0.0, 0.3 - (days_old * 0.01))
 
-    return topic_score * 0.5 + keyword_overlap * 0.3 + recency * 0.2
+    base_score = topic_score * 0.5 + keyword_overlap * 0.3 + recency * 0.2
+
+    # Staleness penalty — pinned entries are ALWAYS exempt
+    if entry.get("pinned"):
+        return base_score
+
+    last_validated_str = entry.get("last_validated") or entry.get("created", "")
+    try:
+        val_dt = datetime.fromisoformat(last_validated_str)
+        stale_days = (datetime.now(timezone.utc) - val_dt).days
+    except (ValueError, TypeError):
+        stale_days = 0  # default: non-stale on parse failure
+
+    staleness_factor = 0.7 if stale_days > 90 else 1.0
+    return base_score * staleness_factor
+
+
+# ---------------------------------------------------------------------------
+# Stale marker for output formatting
+# ---------------------------------------------------------------------------
+def _stale_marker(entry: dict) -> str:
+    if entry.get("pinned"):
+        return ""
+    last_val = entry.get("last_validated") or entry.get("created", "")
+    try:
+        val_dt = datetime.fromisoformat(last_val)
+        days = (datetime.now(timezone.utc) - val_dt).days
+        return f" [stale: {days}d]" if days > 90 else ""
+    except (ValueError, TypeError):
+        return ""
 
 
 # ---------------------------------------------------------------------------
@@ -106,11 +173,16 @@ def load_index(project_dir: str) -> dict:
     index_path = _memory_dir(project_dir) / "index.json"
     if index_path.exists():
         try:
-            return json.loads(index_path.read_text(encoding="utf-8"))
+            data = json.loads(index_path.read_text(encoding="utf-8"))
+            # Auto-migrate v1 -> v2
+            if data.get("version", 1) < 2:
+                data["version"] = 2
+                index_path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+            return data
         except (json.JSONDecodeError, OSError):
             pass
     return {
-        "version": 1,
+        "version": 2,
         "consultation_count": 0,
         "last_updated": "",
         "compaction_watermark": "",
@@ -133,10 +205,15 @@ def load_active(project_dir: str, role: str) -> dict:
     active_path = _memory_dir(project_dir) / f"{role}-active.json"
     if active_path.exists():
         try:
-            return json.loads(active_path.read_text(encoding="utf-8"))
+            data = json.loads(active_path.read_text(encoding="utf-8"))
+            # Auto-migrate v1 -> v2
+            if data.get("version", 1) < 2:
+                data["version"] = 2
+                active_path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+            return data
         except (json.JSONDecodeError, OSError):
             pass
-    return {"version": 1, "role": role, "entries": []}
+    return {"version": 2, "role": role, "entries": []}
 
 
 def save_active(project_dir: str, role: str, data: dict) -> None:
@@ -248,7 +325,7 @@ def build_memory_response(
             entries = active.get("entries", [])
             top3 = sorted(entries, key=lambda e: e.get("importance", 0), reverse=True)[:3]
             for e in top3:
-                summaries.append(f"- {e.get('id', '?')} [imp:{e.get('importance', 0)}]: {e.get('headline', e.get('text', '')[:80])}")
+                summaries.append(f"- {e.get('id', '?')} [imp:{e.get('importance', 0)}]{_stale_marker(e)}: {e.get('headline', e.get('text', '')[:80])}")
         if summaries:
             return tier0_text + "### Key memories (budget-limited)\n" + "\n".join(summaries)
         return tier0_text.strip()
@@ -271,43 +348,107 @@ def build_memory_response(
     # Sort by combined score descending
     all_entries.sort(key=lambda x: x[0], reverse=True)
 
-    # Pack entries within budget
-    relevant_parts = []
-    other_parts = []
+    # Pack entries within budget — 3-tier strategy
     used_tokens = 0
     relevance_threshold = 0.2
 
-    for score, entry in all_entries:
-        # Choose detail level based on remaining budget
-        if remaining - used_tokens > 2000:
-            text = entry.get("text", "")
-        else:
+    if remaining >= 2500:
+        # --- Generous budget: full text when possible ---
+        relevant_parts = []
+        other_parts = []
+        for score, entry in all_entries:
+            if remaining - used_tokens > 2000:
+                text = entry.get("text", "")
+            else:
+                text = entry.get("headline", entry.get("text", "")[:80])
+
+            line = f"- {entry.get('id', '?')} [imp:{entry.get('importance', 0)}]{_stale_marker(entry)}: {text}"
+            line_tokens = estimate_tokens(line)
+
+            if used_tokens + line_tokens > remaining:
+                break
+
+            if score >= relevance_threshold and goal:
+                relevant_parts.append(line)
+            else:
+                other_parts.append(line)
+            used_tokens += line_tokens
+
+        sections = [tier0_text]
+        if relevant_parts:
+            sections.append("### Relevant to this goal")
+            sections.extend(relevant_parts)
+            sections.append("")
+        if other_parts:
+            sections.append("### Other important context")
+            sections.extend(other_parts)
+            sections.append("")
+
+    elif remaining >= 800:
+        # --- Normal budget: two-pass (oneliners, then upgrade top entries) ---
+        # Pass 1: emit all entries as one-liners, track metadata
+        packed: list[tuple[float, dict, str, int]] = []  # (score, entry, oneliner, oneliner_tokens)
+        for score, entry in all_entries:
+            headline = entry.get("headline", entry.get("text", "")[:80])
+            oneliner = f"- {entry.get('id', '?')} [imp:{entry.get('importance', 0)}]{_stale_marker(entry)}: {headline}"
+            oneliner_tokens = estimate_tokens(oneliner)
+            if used_tokens + oneliner_tokens > remaining:
+                break
+            packed.append((score, entry, oneliner, oneliner_tokens))
+            used_tokens += oneliner_tokens
+
+        # Pass 2: upgrade highest-scored entries to full text if budget allows
+        output_lines = [p[2] for p in packed]  # start with all oneliners
+        packed_by_score = sorted(enumerate(packed), key=lambda x: x[1][0], reverse=True)
+        for idx, (score, entry, oneliner, oneliner_tokens) in packed_by_score:
+            full_text = entry.get("text", "")
+            full_line = f"- {entry.get('id', '?')} [imp:{entry.get('importance', 0)}]{_stale_marker(entry)}: {full_text}"
+            full_tokens = estimate_tokens(full_line)
+            extra_tokens = full_tokens - oneliner_tokens
+            if extra_tokens > 0 and used_tokens + extra_tokens <= remaining:
+                output_lines[idx] = full_line
+                used_tokens += extra_tokens
+
+        sections = [tier0_text]
+        sections.append("### Memory Overview")
+        sections.extend(output_lines)
+        sections.append("")
+
+    else:
+        # --- Tight budget (remaining < 800): oneliners only ---
+        relevant_parts = []
+        other_parts = []
+        for score, entry in all_entries:
             text = entry.get("headline", entry.get("text", "")[:80])
+            line = f"- {entry.get('id', '?')} [imp:{entry.get('importance', 0)}]{_stale_marker(entry)}: {text}"
+            line_tokens = estimate_tokens(line)
 
-        line = f"- {entry.get('id', '?')} [imp:{entry.get('importance', 0)}]: {text}"
-        line_tokens = estimate_tokens(line)
+            if used_tokens + line_tokens > remaining:
+                break
 
-        if used_tokens + line_tokens > remaining:
-            break
+            if score >= relevance_threshold and goal:
+                relevant_parts.append(line)
+            else:
+                other_parts.append(line)
+            used_tokens += line_tokens
 
-        if score >= relevance_threshold and goal:
-            relevant_parts.append(line)
-        else:
-            other_parts.append(line)
-        used_tokens += line_tokens
-
-    # Assemble response
-    sections = [tier0_text]
-    if relevant_parts:
-        sections.append("### Relevant to this goal")
-        sections.extend(relevant_parts)
-        sections.append("")
-    if other_parts:
-        sections.append("### Other important context")
-        sections.extend(other_parts)
-        sections.append("")
+        sections = [tier0_text]
+        if relevant_parts:
+            sections.append("### Relevant to this goal")
+            sections.extend(relevant_parts)
+            sections.append("")
+        if other_parts:
+            sections.append("### Other important context")
+            sections.extend(other_parts)
+            sections.append("")
 
     # --- Archive excerpts (from lessons.jsonl, pre-filtered by topic) ---
+    def _score_lesson(lesson: dict, goal: str) -> float:
+        """Lightweight relevance score for archive lessons."""
+        lesson_words = set(re.findall(r"[a-z0-9-]+", lesson.get("lesson", "").lower()))
+        goal_words = set(re.findall(r"[a-z0-9-]+", goal.lower())) - _STOPWORDS
+        return len(goal_words & lesson_words) / max(len(goal_words), 1) if goal_words else 0.0
+
     if goal and remaining - used_tokens > 200:
         goal_topics_set = extract_topics(goal, topic_idx)
         relevant_sessions = set()
@@ -328,18 +469,30 @@ def build_memory_response(
                     except json.JSONDecodeError:
                         continue
 
+            # A7: Cap at 200 most recent before scoring
+            archive_lessons = archive_lessons[-200:]
+
             if archive_lessons:
+                # A8: Relevance-scored selection (top 12)
+                scored_lessons = sorted(archive_lessons, key=lambda l: _score_lesson(l, goal), reverse=True)
+
+                # A9: Archive token cap
+                archive_token_cap = min(int((remaining - used_tokens) * 0.3), 600)
+                archive_used = 0
+
                 excerpt_parts = ["### Archived Lessons (from past consultations)"]
-                for lesson in archive_lessons[-5:]:
+                for lesson in scored_lessons[:12]:
                     text = lesson.get("lesson", "")[:120]
                     source = lesson.get("source", "?")
                     session = lesson.get("session", "?")
                     entry_line = f"- [{source}/{session}] {text}"
                     line_tokens = estimate_tokens(entry_line)
-                    if used_tokens + line_tokens > remaining:
+                    if archive_used + line_tokens > archive_token_cap:
                         break
                     excerpt_parts.append(entry_line)
-                    used_tokens += line_tokens
+                    archive_used += line_tokens
+
+                used_tokens += archive_used
 
                 if len(excerpt_parts) > 1:
                     sections.append("\n".join(excerpt_parts))
@@ -436,6 +589,7 @@ def record_consultation(
                 "importance": importance,
                 "pinned": pin,
                 "created": now_iso,
+                "last_validated": now_iso,
                 "last_referenced": now_iso,
                 "referenced_count": 0,
                 "source_sessions": [session_id],
