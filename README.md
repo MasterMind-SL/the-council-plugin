@@ -1,8 +1,8 @@
-# The Council v3.1.0-beta - Claude Code Plugin
+# The Council v3.1.0 - Claude Code Plugin
 
 Adversarial consultation with **persistent memory** for Claude Code agent teams. Spawn configurable teammates (default: 2 strategists + 1 quality engineer, or custom roles), auto-route between 4 consultation modes, and build project memory that makes consultation #50 smarter than #1.
 
-**v3.1.0-beta**: Anti-deferral system ensures 100% of requested features are implemented. Feature completeness gate check. Claude Velocity context across all agents.
+**v3.1.0**: Anti-deferral system ensures 100% of requested features are implemented. Feature completeness gate check. Claude Velocity context across all agents.
 
 ## Features
 
@@ -304,7 +304,7 @@ Three-tier, budget-aware memory:
 
 Memory retrieval uses **keyword + topic matching** (10 seed categories + dynamic topics that grow from consultations, zero dependencies). When a goal matches archived topics, relevant lessons are automatically surfaced within the token budget. Importance scoring combines base importance, recency bonus, reference count, and staleness penalty.
 
-**Retrieval improvements (v3.1.0-beta):**
+**Retrieval improvements (v3.1.0):**
 - **Synonym expansion** — `extract_topics()` maps 50+ synonyms to canonical keywords (e.g. `autoscaling` → `performance`, `postgres` → `database`) and extracts bigrams, so topic matching works across phrasing variants.
 - **Staleness markers** — entries older than 90 days display `[stale: Xd]` and score 0.7× in relevance. Pinned entries are always exempt.
 - **3-tier packing** — `build_memory_response()` adapts detail to budget: generous (≥2500 tokens remaining) uses full text; normal (800–2500) emits one-liners then upgrades top entries to full text; tight (<800) uses one-liners only.
